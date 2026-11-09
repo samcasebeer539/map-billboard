@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type FilterSpecification, GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
+import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
 import { fetchPostsInView, Post, supabase } from "@/lib/supabase";
 import { cssToken, Theme } from "@/lib/settings";
 import { useSettings } from "./SettingsProvider";
@@ -94,6 +94,10 @@ function cardElement(p: Post, onClose: () => void): HTMLElement {
 // At this zoom and closer, posts open as cards by default (each can be minimized)
 const CARD_ZOOM = 14;
 
+// How far (px) a card's bottom edge sits above its post's location, so the triangle
+// points at the dot (8px radius + 2px border) instead of covering it.
+const CARD_LIFT = 14;
+
 // Up to this zoom, nearby posts are grouped into numbered clusters.
 // Always one level below CARD_ZOOM, so there's a dots-only zoom level in between.
 const CLUSTER_MAX_ZOOM = CARD_ZOOM - 1;
@@ -108,11 +112,6 @@ function applyPinColors(map: MlMap) {
     map.setPaintProperty(id, "circle-stroke-color", stroke);
   }
   if (map.getLayer("post-cluster-count")) map.setPaintProperty("post-cluster-count", "text-color", cssToken("--on-accent"));
-}
-
-// Single-post dots, minus any post currently shown as a card
-function dotFilter(openIds: string[]): FilterSpecification {
-  return ["all", ["!", ["has", "point_count"]], ["!", ["in", ["get", "id"], ["literal", openIds]]]];
 }
 
 function addPostLayers(map: MlMap, data: GeoJSON.FeatureCollection) {
@@ -151,7 +150,7 @@ function addPostLayers(map: MlMap, data: GeoJSON.FeatureCollection) {
     id: "posts",
     type: "circle",
     source: "posts",
-    filter: dotFilter([]),
+    filter: ["!", ["has", "point_count"]],
     paint: { "circle-radius": 8, "circle-stroke-width": 2 },
   });
   applyPinColors(map);
@@ -186,7 +185,6 @@ export default function BillboardMap() {
       openedRef.current.has(id) || (zoomedIn && !minimizedRef.current.has(id));
 
     const open = postsRef.current.filter((p) => isOpen(p.id));
-    if (map.getLayer("posts")) map.setFilter("posts", dotFilter(open.map((p) => p.id)));
 
     const cards = cardsRef.current;
     const wanted = new Map(open.map((p) => [`${p.id}|${p.category}|${p.title}|${p.body}`, p]));
@@ -203,7 +201,7 @@ export default function BillboardMap() {
         minimizedRef.current.add(p.id);
         syncCards();
       };
-      const marker = new Marker({ element: cardElement(p, minimize), anchor: "bottom", offset: [0, -3] })
+      const marker = new Marker({ element: cardElement(p, minimize), anchor: "bottom", offset: [0, -CARD_LIFT] })
         .setLngLat([p.lng, p.lat])
         .addTo(map);
       cards.set(key, marker);
