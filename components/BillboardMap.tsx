@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, Popup, setWorkerUrl } from "maplibre-gl";
+import { type FilterSpecification, GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
 import { fetchPostsInView, Post, supabase } from "@/lib/supabase";
 import { cssToken, Theme } from "@/lib/settings";
 import { useSettings } from "./SettingsProvider";
@@ -39,14 +39,14 @@ function toGeoJSON(posts: Post[]): GeoJSON.FeatureCollection {
 }
 
 // Post content (category, title, body, date) as DOM nodes. Built with textContent
-// so user-submitted text can't inject HTML. Used by both popups and zoomed-in cards.
-function postContent(p: Pick<Post, "category" | "title" | "body" | "created_at">, opts = { closeButton: false }): HTMLElement {
+// so user-submitted text can't inject HTML.
+function postContent(p: Pick<Post, "category" | "title" | "body" | "created_at">): HTMLElement {
   const el = document.createElement("div");
   const cat = document.createElement("div");
-  cat.className = "text-xs font-medium uppercase tracking-wide text-accent";
+  cat.className = "pr-6 text-xs font-medium uppercase tracking-wide text-accent";
   cat.textContent = p.category;
   const title = document.createElement("div");
-  title.className = `mt-1 text-sm font-semibold ${opts.closeButton ? "pr-4" : ""}`;
+  title.className = "mt-1 text-sm font-semibold";
   title.textContent = p.title;
   const body = document.createElement("p");
   body.className = "mt-1 whitespace-pre-wrap break-words text-sm text-muted";
@@ -60,13 +60,28 @@ function postContent(p: Pick<Post, "category" | "title" | "body" | "created_at">
   return el;
 }
 
-// Zoomed-in view: a card with a small triangle pointing at the post's location
-function cardElement(p: Post): HTMLElement {
+// A post card with a close (×) button and a small triangle pointing at its location.
+// This is the only way a post is shown in full; closing it shrinks it back to a dot.
+function cardElement(p: Post, onClose: () => void): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "post-card flex flex-col items-center";
   const card = document.createElement("div");
-  card.className = "floating w-60 rounded-xl p-3";
+  card.className = "floating relative w-60 rounded-xl p-3";
   card.append(postContent(p));
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.setAttribute("aria-label", "Minimize post");
+  close.className =
+    "absolute top-2 right-2 flex size-6 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent";
+  close.innerHTML =
+    '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>';
+  close.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onClose();
+  });
+  card.append(close);
+
   const tip = document.createElement("div");
   tip.className = "card-tip";
   wrap.append(card, tip);
@@ -76,13 +91,12 @@ function cardElement(p: Post): HTMLElement {
   return wrap;
 }
 
-// At this zoom and closer, posts show as full cards instead of dots
+// At this zoom and closer, posts open as cards by default (each can be minimized)
 const CARD_ZOOM = 14;
 
 // Up to this zoom, nearby posts are grouped into numbered clusters.
 // Always one level below CARD_ZOOM, so there's a dots-only zoom level in between.
 const CLUSTER_MAX_ZOOM = CARD_ZOOM - 1;
-const POST_LAYERS = ["post-clusters", "post-cluster-count", "posts"];
 
 // Pin colors come from the same CSS tokens as the rest of the UI
 function applyPinColors(map: MlMap) {
@@ -94,6 +108,11 @@ function applyPinColors(map: MlMap) {
     map.setPaintProperty(id, "circle-stroke-color", stroke);
   }
   if (map.getLayer("post-cluster-count")) map.setPaintProperty("post-cluster-count", "text-color", cssToken("--on-accent"));
+}
+
+// Single-post dots, minus any post currently shown as a card
+function dotFilter(openIds: string[]): FilterSpecification {
+  return ["all", ["!", ["has", "point_count"]], ["!", ["in", ["get", "id"], ["literal", openIds]]]];
 }
 
 function addPostLayers(map: MlMap, data: GeoJSON.FeatureCollection) {
@@ -132,7 +151,7 @@ function addPostLayers(map: MlMap, data: GeoJSON.FeatureCollection) {
     id: "posts",
     type: "circle",
     source: "posts",
-    filter: ["!", ["has", "point_count"]],
+    filter: dotFilter([]),
     paint: { "circle-radius": 8, "circle-stroke-width": 2 },
   });
   applyPinColors(map);
@@ -150,33 +169,27 @@ export default function BillboardMap() {
   const styleThemeRef = useRef<Theme | null>(null);
   const postsRef = useRef<Post[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
-  const popupRef = useRef<Popup | null>(null); // the open dot popup, if any
+  // Per-post overrides of the zoom default: opened (clicked dot) and minimized (× on a card)
+  const openedRef = useRef(new Set<string>());
+  const minimizedRef = useRef(new Set<string>());
   const cardsRef = useRef(new Map<string, Marker>()); // key: id + content, so edits re-render
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const { theme, accent, ready } = useSettings();
 
-  // Show cards when zoomed in, dots when zoomed out
+  // Decide which posts show as cards: everything when zoomed in (unless minimized),
+  // plus any post the user opened by clicking its dot.
   const syncCards = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    const showCards = map.getZoom() >= CARD_ZOOM;
-    for (const id of POST_LAYERS) {
-      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", showCards ? "none" : "visible");
-    }
+    const zoomedIn = map.getZoom() >= CARD_ZOOM;
+    const isOpen = (id: string) =>
+      openedRef.current.has(id) || (zoomedIn && !minimizedRef.current.has(id));
 
-    // Cards replace popups, so close any open one to avoid showing the post twice
-    if (showCards) {
-      popupRef.current?.remove();
-      popupRef.current = null;
-    }
+    const open = postsRef.current.filter((p) => isOpen(p.id));
+    if (map.getLayer("posts")) map.setFilter("posts", dotFilter(open.map((p) => p.id)));
 
     const cards = cardsRef.current;
-    if (!showCards) {
-      cards.forEach((m) => m.remove());
-      cards.clear();
-      return;
-    }
-    const wanted = new Map(postsRef.current.map((p) => [`${p.id}|${p.category}|${p.title}|${p.body}`, p]));
+    const wanted = new Map(open.map((p) => [`${p.id}|${p.category}|${p.title}|${p.body}`, p]));
     for (const [key, marker] of cards) {
       if (!wanted.has(key)) {
         marker.remove();
@@ -185,7 +198,12 @@ export default function BillboardMap() {
     }
     for (const [key, p] of wanted) {
       if (cards.has(key)) continue;
-      const marker = new Marker({ element: cardElement(p), anchor: "bottom", offset: [0, -3] })
+      const minimize = () => {
+        openedRef.current.delete(p.id);
+        minimizedRef.current.add(p.id);
+        syncCards();
+      };
+      const marker = new Marker({ element: cardElement(p, minimize), anchor: "bottom", offset: [0, -3] })
         .setLngLat([p.lng, p.lat])
         .addTo(map);
       cards.set(key, marker);
@@ -240,15 +258,15 @@ export default function BillboardMap() {
     map.on("load", loadPosts);
     map.on("zoom", syncCards);
 
+    // Clicking a dot opens its card, which stays open while zooming
     map.on("click", "posts", (e) => {
-      const f = e.features?.[0];
-      if (!f || f.geometry.type !== "Point") return;
-      popupRef.current?.remove();
-      popupRef.current = new Popup({ offset: 12 })
-        .setLngLat(f.geometry.coordinates as [number, number])
-        .setDOMContent(postContent(f.properties as Post, { closeButton: true }))
-        .addTo(map);
+      const id = e.features?.[0]?.properties?.id as string | undefined;
+      if (!id) return;
+      openedRef.current.add(id);
+      minimizedRef.current.delete(id);
+      syncCards();
     });
+
     // Clicking a group zooms in far enough to split it apart
     map.on("click", "post-clusters", async (e) => {
       const f = e.features?.[0];

@@ -86,69 +86,6 @@ body {
   margin: 0;
 }
 
-/* ------------------------------------------------------------------
-   MapLibre popups and controls, themed with the same tokens
-   ------------------------------------------------------------------ */
-.maplibregl-popup-content {
-  background: var(--surface);
-  color: var(--fg);
-  border: 1px solid var(--line);
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  max-width: 260px;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.15);
-}
-/* Popup tips: same bordered triangle as the post cards (rotated square) */
-.maplibregl-popup .maplibregl-popup-tip {
-  width: 12px;
-  height: 12px;
-  border: 0 solid var(--line);
-  background: var(--surface);
-  transform: rotate(45deg);
-  z-index: 1;
-}
-.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
-.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
-.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
-  border-right-width: 1px;
-  border-bottom-width: 1px;
-  margin-top: -7px;
-}
-.maplibregl-popup-anchor-top .maplibregl-popup-tip,
-.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
-.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
-  border-left-width: 1px;
-  border-top-width: 1px;
-  margin-bottom: -7px;
-}
-.maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-left-width: 1px;
-  border-bottom-width: 1px;
-  margin-right: -7px;
-}
-.maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-right-width: 1px;
-  border-top-width: 1px;
-  margin-left: -7px;
-}
-.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
-.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip {
-  margin-left: 10px;
-}
-.maplibregl-popup-anchor-top-right .maplibregl-popup-tip,
-.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
-  margin-right: 10px;
-}
-.maplibregl-popup-close-button {
-  color: var(--muted);
-  font-size: 1.125rem;
-  padding: 0 0.5rem;
-  border-radius: 0 0.75rem 0 0.5rem;
-}
-.maplibregl-popup-close-button:hover {
-  background: var(--surface-2);
-}
-
 .maplibregl-ctrl-group {
   background: var(--surface);
   border: 1px solid var(--line);
