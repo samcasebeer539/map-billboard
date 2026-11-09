@@ -13,7 +13,6 @@ export default function SettingsForm() {
       <div className="flex items-center justify-between gap-4 p-4">
         <div>
           <div className="text-sm font-medium">Dark mode</div>
-          <div className="text-xs text-muted">Applies to the whole app, including the map.</div>
         </div>
         <button
           type="button"
@@ -36,7 +35,6 @@ export default function SettingsForm() {
       {/* Accent color */}
       <div className="p-4">
         <div className="text-sm font-medium">Accent color</div>
-        <div className="text-xs text-muted">Used for buttons, links and map pins.</div>
         <div className="mt-4 flex flex-wrap gap-3" role="radiogroup" aria-label="Accent color">
           {(Object.keys(ACCENTS) as Accent[]).map((name) => (
             <button
