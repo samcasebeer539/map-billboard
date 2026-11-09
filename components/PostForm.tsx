@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Select from "./Select";
+import ImagePicker from "./ImagePicker";
 import { CATEGORIES, createPost } from "@/lib/supabase";
 
 type Props = {
@@ -14,6 +15,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
+  const [image, setImage] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -22,7 +24,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
     if (!title.trim()) return setError("Give it a title.");
     setSaving(true);
     setError(null);
-    const err = await createPost({ title: title.trim(), body: body.trim(), category, ...location });
+    const err = await createPost({ title: title.trim(), body: body.trim(), category, image, ...location });
     setSaving(false);
     if (err) setError(err);
     else onPosted();
@@ -61,6 +63,22 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
           <Select id="post-category" value={category} options={CATEGORIES} onChange={setCategory} />
         </div>
 
+        <div>
+          <label htmlFor="post-image" className="field-label">
+            Photo <span className="font-normal">(optional)</span>
+          </label>
+          <ImagePicker
+            id="post-image"
+            file={image}
+            onPick={(f) => {
+              setImage(f);
+              setError(null);
+            }}
+            onRemove={() => setImage(null)}
+            onError={setError}
+          />
+        </div>
+
         <div className="flex flex-1 flex-col">
           <label htmlFor="post-body" className="field-label">
             Details
@@ -88,7 +106,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
           Cancel
         </button>
         <button type="submit" disabled={saving} className="btn-primary">
-          {saving ? "Posting…" : "Post"}
+          {saving ? (image ? "Uploading…" : "Posting…") : "Post"}
         </button>
       </footer>
     </form>

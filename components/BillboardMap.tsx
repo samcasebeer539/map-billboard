@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
-import { fetchPostsInView, Post, supabase } from "@/lib/supabase";
+import { fetchPostsInView, imageUrl, Post, supabase } from "@/lib/supabase";
 import { cssToken, Theme } from "@/lib/settings";
 import { useSettings } from "./SettingsProvider";
 import PostForm from "./PostForm";
@@ -67,13 +67,29 @@ function cardElement(p: Post, onClose: () => void): HTMLElement {
   wrap.className = "post-card flex flex-col items-center";
   const card = document.createElement("div");
   card.className = "floating relative w-60 rounded-xl p-3";
+
+  if (p.image_path) {
+    // Photo across the top; click opens the full-size image in a new tab
+    const link = document.createElement("a");
+    link.href = imageUrl(p.image_path);
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.className = "-mx-3 -mt-3 mb-3 block overflow-hidden rounded-t-xl border-b border-line";
+    const img = document.createElement("img");
+    img.src = link.href;
+    img.alt = p.title;
+    img.loading = "lazy";
+    img.className = "h-36 w-full object-cover";
+    link.append(img);
+    card.append(link);
+  }
   card.append(postContent(p));
 
   const close = document.createElement("button");
   close.type = "button";
   close.setAttribute("aria-label", "Minimize post");
   close.className =
-    "absolute top-2 right-2 flex size-6 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent";
+    "absolute top-2 right-2 flex size-6 items-center justify-center rounded-md bg-surface text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent";
   close.innerHTML =
     '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>';
   close.addEventListener("click", (e) => {
@@ -187,7 +203,7 @@ export default function BillboardMap() {
     const open = postsRef.current.filter((p) => isOpen(p.id));
 
     const cards = cardsRef.current;
-    const wanted = new Map(open.map((p) => [`${p.id}|${p.category}|${p.title}|${p.body}`, p]));
+    const wanted = new Map(open.map((p) => [`${p.id}|${p.category}|${p.title}|${p.body}|${p.image_path}`, p]));
     for (const [key, marker] of cards) {
       if (!wanted.has(key)) {
         marker.remove();

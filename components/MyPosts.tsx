@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Select from "./Select";
-import { CATEGORIES, deletePost, fetchMyPosts, Post, updatePost } from "@/lib/supabase";
+import ImagePicker from "./ImagePicker";
+import { CATEGORIES, deletePost, fetchMyPosts, imageUrl, Post, updatePost } from "@/lib/supabase";
 
 const fmtDate = (d: string) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
@@ -58,6 +59,7 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
   const [title, setTitle] = useState(post.title);
   const [body, setBody] = useState(post.body);
   const [category, setCategory] = useState(post.category);
+  const [image, setImage] = useState<File | null | undefined>(undefined); // undefined = unchanged
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,17 +69,27 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
     if (!title.trim()) return setError("Title can't be empty.");
     setBusy(true);
     setError(null);
-    const err = await updatePost(post.id, { title: title.trim(), body: body.trim(), category });
+    const err = await updatePost(post, { title: title.trim(), body: body.trim(), category, image });
     setBusy(false);
     if (err) return setError(err);
     setEditing(false);
+    setImage(undefined);
     onChanged();
+  }
+
+  function cancelEdit() {
+    setTitle(post.title);
+    setBody(post.body);
+    setCategory(post.category);
+    setImage(undefined);
+    setError(null);
+    setEditing(false);
   }
 
   async function remove() {
     if (!window.confirm(`Delete "${post.title}"?`)) return;
     setBusy(true);
-    const err = await deletePost(post.id);
+    const err = await deletePost(post);
     setBusy(false);
     if (err) return setError(err);
     onChanged();
@@ -100,6 +112,22 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
           <Select id={`${id}-category`} value={category} options={CATEGORIES} onChange={setCategory} />
         </div>
         <div>
+          <label htmlFor={`${id}-image`} className="field-label">
+            Photo
+          </label>
+          <ImagePicker
+            id={`${id}-image`}
+            file={image instanceof File ? image : null}
+            existingUrl={image === null || !post.image_path ? null : imageUrl(post.image_path)}
+            onPick={(f) => {
+              setImage(f);
+              setError(null);
+            }}
+            onRemove={() => setImage(null)}
+            onError={setError}
+          />
+        </div>
+        <div>
           <label htmlFor={`${id}-body`} className="field-label">
             Details
           </label>
@@ -118,11 +146,11 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
           </p>
         )}
         <div className="flex justify-end gap-2">
-          <button onClick={() => setEditing(false)} className="btn-ghost">
+          <button onClick={cancelEdit} className="btn-ghost">
             Cancel
           </button>
           <button onClick={save} disabled={busy} className="btn-primary">
-            Save
+            {busy ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
@@ -131,12 +159,25 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
 
   return (
     <article className="card p-4">
-      <div className="flex items-center gap-2 text-xs text-muted">
-        <span className="font-medium uppercase tracking-wide">{post.category}</span>
-        {expired && <span className="rounded-full border border-line px-2 py-0.5">Expired</span>}
+      <div className="flex gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span className="font-medium uppercase tracking-wide">{post.category}</span>
+            {expired && <span className="rounded-full border border-line px-2 py-0.5">Expired</span>}
+          </div>
+          <h3 className="mt-1 text-sm font-semibold">{post.title}</h3>
+          {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
+        </div>
+        {post.image_path && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl(post.image_path)}
+            alt=""
+            loading="lazy"
+            className="size-20 shrink-0 rounded-lg border border-line object-cover"
+          />
+        )}
       </div>
-      <h3 className="mt-1 text-sm font-semibold">{post.title}</h3>
-      {post.body && <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{post.body}</p>}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
         <span className="text-xs text-muted">
