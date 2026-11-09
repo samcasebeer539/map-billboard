@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, Popup } from "maplibre-gl";
+import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, Popup, setWorkerUrl } from "maplibre-gl";
 import { fetchPostsInView, Post, supabase } from "@/lib/supabase";
 import PostForm from "./PostForm";
 
@@ -9,6 +9,10 @@ const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const STYLE_URL = MAPTILER_KEY
   ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`
   : "https://tiles.openfreemap.org/styles/liberty"; // free, no key
+
+// MapLibre 6 runs tile parsing in a web worker. Bundlers can't resolve its default
+// worker path, so we serve a copy from /public (copied there by scripts/copy-maplibre-worker.mjs).
+setWorkerUrl("/maplibre-gl-worker.mjs");
 
 // Starting view: Sacramento. Change to wherever you want the demo to open.
 const START: [number, number] = [-121.4944, 38.5816];
