@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createRoot, Root } from "react-dom/client";
 import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
-import { fetchPostsInView, imageUrl, Post, setSaved, supabase } from "@/lib/supabase";
+import { fetchPostsInView, Post, setSaved, supabase } from "@/lib/supabase";
 import { cssToken, Theme } from "@/lib/settings";
 import { useSettings } from "./SettingsProvider";
 import PostForm from "./PostForm";
 import NavMenu from "./NavMenu";
+import PostCard from "./PostCard";
 import Lightbox, { LightboxImage } from "./Lightbox";
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
@@ -37,118 +39,6 @@ function toGeoJSON(posts: Post[]): GeoJSON.FeatureCollection {
       properties: { id: p.id, title: p.title, body: p.body, category: p.category, created_at: p.created_at },
     })),
   };
-}
-
-// Post content (category, title, body, date) as DOM nodes. Built with textContent
-// so user-submitted text can't inject HTML.
-function postContent(p: Pick<Post, "category" | "title" | "body" | "created_at">): HTMLElement {
-  const el = document.createElement("div");
-  const cat = document.createElement("div");
-  cat.className = "pr-6 text-xs font-medium uppercase tracking-wide text-accent";
-  cat.textContent = p.category;
-  const title = document.createElement("div");
-  title.className = "mt-1 text-sm font-semibold";
-  title.textContent = p.title;
-  const body = document.createElement("p");
-  body.className = "mt-1 whitespace-pre-wrap break-words text-sm text-muted";
-  body.textContent = p.body;
-  el.append(cat, title);
-  if (p.body) el.append(body);
-  return el;
-}
-
-const BOOKMARK_PATH = "M4 2.5h8a.5.5 0 0 1 .5.5v10.6a.3.3 0 0 1-.48.24L8 10.9l-4.02 2.94a.3.3 0 0 1-.48-.24V3a.5.5 0 0 1 .5-.5z";
-
-// Save (bookmark) toggle with a count. Returns the button plus a function to redraw it.
-function saveButton(onToggle: () => void) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className =
-    "-mr-1.5 flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium tabular-nums hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent";
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    onToggle();
-  });
-  const render = (count: number, saved: boolean) => {
-    btn.setAttribute("aria-pressed", String(saved));
-    btn.setAttribute("aria-label", `${saved ? "Unsave" : "Save"} post, ${count} ${count === 1 ? "save" : "saves"}`);
-    btn.title = saved ? "Saved" : "Save";
-    btn.classList.toggle("text-accent", saved);
-    btn.classList.toggle("text-muted", !saved);
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="${saved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="${BOOKMARK_PATH}"/></svg><span>${count}</span>`;
-  };
-  return { btn, render };
-}
-
-// A post card with a close (×) button and a small triangle pointing at its location.
-// This is the only way a post is shown in full; closing it shrinks it back to a dot.
-type CardUI = { el: HTMLElement; renderSave: (count: number, saved: boolean) => void };
-
-function cardElement(
-  p: Post,
-  onClose: () => void,
-  onExpand: (src: string, alt: string) => void,
-  onToggleSave: () => void
-): CardUI {
-  const wrap = document.createElement("div");
-  wrap.className = "post-card flex flex-col items-center";
-  const card = document.createElement("div");
-  card.className = "floating relative w-60 rounded-xl p-3";
-
-  if (p.image_path) {
-    // Photo across the top at its natural aspect ratio (very tall photos are capped).
-    // Clicking it opens the full-size photo in the in-page viewer.
-    const src = imageUrl(p.image_path);
-    const expand = document.createElement("button");
-    expand.type = "button";
-    expand.setAttribute("aria-label", "Expand photo");
-    expand.className =
-      "-mx-3 -mt-3 mb-3 block w-[calc(100%+1.5rem)] cursor-zoom-in overflow-hidden rounded-t-xl border-b border-line bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent";
-    const img = document.createElement("img");
-    img.src = src;
-    img.alt = p.title;
-    img.loading = "lazy";
-    img.className = "block h-auto max-h-80 w-full object-cover";
-    expand.append(img);
-    expand.addEventListener("click", (e) => {
-      e.stopPropagation();
-      onExpand(src, p.title);
-    });
-    card.append(expand);
-  }
-  card.append(postContent(p));
-
-  // Footer: date on the left, save button on the right
-  const footer = document.createElement("div");
-  footer.className = "mt-2 flex items-center justify-between";
-  const date = document.createElement("span");
-  date.className = "text-xs text-muted";
-  date.textContent = new Date(p.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  const save = saveButton(onToggleSave);
-  save.render(p.save_count, p.saved);
-  footer.append(date, save.btn);
-  card.append(footer);
-
-  const close = document.createElement("button");
-  close.type = "button";
-  close.setAttribute("aria-label", "Minimize post");
-  close.className =
-    "absolute top-2 right-2 flex size-6 items-center justify-center rounded-md bg-surface text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent";
-  close.innerHTML =
-    '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>';
-  close.addEventListener("click", (e) => {
-    e.stopPropagation();
-    onClose();
-  });
-  card.append(close);
-
-  const tip = document.createElement("div");
-  tip.className = "card-tip";
-  wrap.append(card, tip);
-  // Bring the hovered card above its neighbours
-  wrap.addEventListener("mouseenter", () => (wrap.style.zIndex = "1"));
-  wrap.addEventListener("mouseleave", () => (wrap.style.zIndex = ""));
-  return { el: wrap, renderSave: save.render };
 }
 
 // At this zoom and closer, posts open as cards by default (each can be minimized)
@@ -231,8 +121,9 @@ export default function BillboardMap() {
   // Per-post overrides of the zoom default: opened (clicked dot) and minimized (× on a card)
   const openedRef = useRef(new Set<string>());
   const minimizedRef = useRef(new Set<string>());
-  // key: id + content, so edits re-render. Save counts update in place via renderSave.
-  const cardsRef = useRef(new Map<string, { marker: Marker; renderSave: CardUI["renderSave"] }>());
+  // One map marker per open card, keyed by post id. Each marker holds its own React root
+  // rendering <PostCard>, which is re-rendered whenever the post's data changes.
+  const cardsRef = useRef(new Map<string, { marker: Marker; root: Root; post: Post; render: () => void }>());
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
   const { theme, accent, ready } = useSettings();
@@ -250,44 +141,66 @@ export default function BillboardMap() {
     const open = postsRef.current.filter((p) => isOpen(p.id));
 
     const cards = cardsRef.current;
-    const wanted = new Map(open.map((p) => [`${p.id}|${p.category}|${p.title}|${p.body}|${p.image_path}`, p]));
-    for (const [key, card] of cards) {
-      if (!wanted.has(key)) {
+    const openIds = new Set(open.map((p) => p.id));
+    for (const [id, card] of cards) {
+      if (!openIds.has(id)) {
         card.marker.remove();
-        cards.delete(key);
+        setTimeout(() => card.root.unmount()); // unmount outside React's render cycle
+        cards.delete(id);
       }
     }
-    for (const [key, p] of wanted) {
-      const existing = cards.get(key);
+
+    for (const p of open) {
+      const existing = cards.get(p.id);
       if (existing) {
-        existing.renderSave(p.save_count, p.saved); // fresh counts from the server
+        existing.post = p; // fresh data from the server (edits, save counts)
+        existing.render();
         continue;
       }
+
+      const el = document.createElement("div");
+      // Bring the hovered card above its neighbours
+      el.addEventListener("mouseenter", () => (el.style.zIndex = "1"));
+      el.addEventListener("mouseleave", () => (el.style.zIndex = ""));
+      const root = createRoot(el);
+
       const minimize = () => {
         openedRef.current.delete(p.id);
         minimizedRef.current.add(p.id);
         syncCards();
       };
+
       // Optimistic save toggle: update right away, roll back if the server says no
       const toggleSave = async () => {
-        const next = !p.saved;
-        const apply = (saved: boolean) => {
-          p.save_count += saved === p.saved ? 0 : saved ? 1 : -1;
-          p.saved = saved;
-          ui.renderSave(p.save_count, p.saved);
-        };
-        apply(next);
+        const before = entry.post;
+        const next = !before.saved;
+        entry.post = { ...before, saved: next, save_count: before.save_count + (next ? 1 : -1) };
+        entry.render();
         const err = await setSaved(p.id, next);
         if (err) {
-          apply(!next);
           console.error("Couldn't update save:", err);
+          entry.post = before;
+          entry.render();
         }
       };
-      const ui = cardElement(p, minimize, (src, alt) => setLightbox({ src, alt }), toggleSave);
-      const marker = new Marker({ element: ui.el, anchor: "bottom", offset: [0, -CARD_LIFT] })
-        .setLngLat([p.lng, p.lat])
-        .addTo(map);
-      cards.set(key, { marker, renderSave: ui.renderSave });
+
+      const entry = {
+        marker: new Marker({ element: el, anchor: "bottom", offset: [0, -CARD_LIFT] }).setLngLat([p.lng, p.lat]),
+        root,
+        post: p,
+        render: () =>
+          root.render(
+            <PostCard
+              post={entry.post}
+              onClose={minimize}
+              onExpand={(src, alt) => setLightbox({ src, alt })}
+              onToggleSave={toggleSave}
+            />
+          ),
+      };
+      entry.render();
+      entry.marker.addTo(map);
+      cards.set(p.id, entry);
     }
   }, []);
 
@@ -376,6 +289,7 @@ export default function BillboardMap() {
 
     const cards = cardsRef.current;
     return () => {
+      for (const card of cards.values()) setTimeout(() => card.root.unmount());
       cards.clear();
       map.remove();
     };
