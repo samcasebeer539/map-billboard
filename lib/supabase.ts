@@ -17,6 +17,8 @@ export type Post = {
   lng: number;
   created_at: string;
   expires_at: string;
+  save_count: number;
+  saved: boolean; // saved by the current visitor
 };
 
 const IMAGE_BUCKET = "post-images";
@@ -198,4 +200,27 @@ export async function deletePost(post: Post): Promise<string | null> {
   if (error) return error.message;
   if (post.image_path) await removeImage(post.image_path);
   return null;
+}
+
+// ---------- Saves ----------
+
+export async function fetchSavedPosts(): Promise<{ posts: Post[]; error: string | null }> {
+  if (!supabase) return { posts: [], error: "Supabase isn't configured yet. See the README." };
+  const authError = await ensureSession();
+  if (authError) return { posts: [], error: authError };
+  const { data, error } = await supabase.rpc("saved_posts");
+  return { posts: (data as Post[]) ?? [], error: error?.message ?? null };
+}
+
+// Saves or unsaves a post for the current visitor. Returns an error message, or null.
+export async function setSaved(postId: string, saved: boolean): Promise<string | null> {
+  if (!supabase) return "Supabase isn't configured yet.";
+  const authError = await ensureSession();
+  if (authError) return authError;
+  const { error } = saved
+    ? await supabase.from("post_saves").insert({ post_id: postId })
+    : await supabase.from("post_saves").delete().eq("post_id", postId);
+  // Saving something already saved is fine (e.g. two tabs open)
+  if (error && error.code === "23505") return null;
+  return error ? error.message : null;
 }

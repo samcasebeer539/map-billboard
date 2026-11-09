@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
-import { fetchPostsInView, imageUrl, Post, supabase } from "@/lib/supabase";
+import { fetchPostsInView, imageUrl, Post, setSaved, supabase } from "@/lib/supabase";
 import { cssToken, Theme } from "@/lib/settings";
 import { useSettings } from "./SettingsProvider";
 import PostForm from "./PostForm";
@@ -52,18 +52,44 @@ function postContent(p: Pick<Post, "category" | "title" | "body" | "created_at">
   const body = document.createElement("p");
   body.className = "mt-1 whitespace-pre-wrap break-words text-sm text-muted";
   body.textContent = p.body;
-  const date = document.createElement("div");
-  date.className = "mt-2 text-xs text-muted";
-  date.textContent = new Date(p.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   el.append(cat, title);
   if (p.body) el.append(body);
-  el.append(date);
   return el;
+}
+
+const BOOKMARK_PATH = "M4 2.5h8a.5.5 0 0 1 .5.5v10.6a.3.3 0 0 1-.48.24L8 10.9l-4.02 2.94a.3.3 0 0 1-.48-.24V3a.5.5 0 0 1 .5-.5z";
+
+// Save (bookmark) toggle with a count. Returns the button plus a function to redraw it.
+function saveButton(onToggle: () => void) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className =
+    "-mr-1.5 flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium tabular-nums hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent";
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onToggle();
+  });
+  const render = (count: number, saved: boolean) => {
+    btn.setAttribute("aria-pressed", String(saved));
+    btn.setAttribute("aria-label", `${saved ? "Unsave" : "Save"} post, ${count} ${count === 1 ? "save" : "saves"}`);
+    btn.title = saved ? "Saved" : "Save";
+    btn.classList.toggle("text-accent", saved);
+    btn.classList.toggle("text-muted", !saved);
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="${saved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="${BOOKMARK_PATH}"/></svg><span>${count}</span>`;
+  };
+  return { btn, render };
 }
 
 // A post card with a close (×) button and a small triangle pointing at its location.
 // This is the only way a post is shown in full; closing it shrinks it back to a dot.
-function cardElement(p: Post, onClose: () => void, onExpand: (src: string, alt: string) => void): HTMLElement {
+type CardUI = { el: HTMLElement; renderSave: (count: number, saved: boolean) => void };
+
+function cardElement(
+  p: Post,
+  onClose: () => void,
+  onExpand: (src: string, alt: string) => void,
+  onToggleSave: () => void
+): CardUI {
   const wrap = document.createElement("div");
   wrap.className = "post-card flex flex-col items-center";
   const card = document.createElement("div");
@@ -92,6 +118,17 @@ function cardElement(p: Post, onClose: () => void, onExpand: (src: string, alt: 
   }
   card.append(postContent(p));
 
+  // Footer: date on the left, save button on the right
+  const footer = document.createElement("div");
+  footer.className = "mt-2 flex items-center justify-between";
+  const date = document.createElement("span");
+  date.className = "text-xs text-muted";
+  date.textContent = new Date(p.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const save = saveButton(onToggleSave);
+  save.render(p.save_count, p.saved);
+  footer.append(date, save.btn);
+  card.append(footer);
+
   const close = document.createElement("button");
   close.type = "button";
   close.setAttribute("aria-label", "Minimize post");
@@ -111,7 +148,7 @@ function cardElement(p: Post, onClose: () => void, onExpand: (src: string, alt: 
   // Bring the hovered card above its neighbours
   wrap.addEventListener("mouseenter", () => (wrap.style.zIndex = "1"));
   wrap.addEventListener("mouseleave", () => (wrap.style.zIndex = ""));
-  return wrap;
+  return { el: wrap, renderSave: save.render };
 }
 
 // At this zoom and closer, posts open as cards by default (each can be minimized)
@@ -194,7 +231,8 @@ export default function BillboardMap() {
   // Per-post overrides of the zoom default: opened (clicked dot) and minimized (× on a card)
   const openedRef = useRef(new Set<string>());
   const minimizedRef = useRef(new Set<string>());
-  const cardsRef = useRef(new Map<string, Marker>()); // key: id + content, so edits re-render
+  // key: id + content, so edits re-render. Save counts update in place via renderSave.
+  const cardsRef = useRef(new Map<string, { marker: Marker; renderSave: CardUI["renderSave"] }>());
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
   const { theme, accent, ready } = useSettings();
@@ -213,23 +251,43 @@ export default function BillboardMap() {
 
     const cards = cardsRef.current;
     const wanted = new Map(open.map((p) => [`${p.id}|${p.category}|${p.title}|${p.body}|${p.image_path}`, p]));
-    for (const [key, marker] of cards) {
+    for (const [key, card] of cards) {
       if (!wanted.has(key)) {
-        marker.remove();
+        card.marker.remove();
         cards.delete(key);
       }
     }
     for (const [key, p] of wanted) {
-      if (cards.has(key)) continue;
+      const existing = cards.get(key);
+      if (existing) {
+        existing.renderSave(p.save_count, p.saved); // fresh counts from the server
+        continue;
+      }
       const minimize = () => {
         openedRef.current.delete(p.id);
         minimizedRef.current.add(p.id);
         syncCards();
       };
-      const marker = new Marker({ element: cardElement(p, minimize, (src, alt) => setLightbox({ src, alt })), anchor: "bottom", offset: [0, -CARD_LIFT] })
+      // Optimistic save toggle: update right away, roll back if the server says no
+      const toggleSave = async () => {
+        const next = !p.saved;
+        const apply = (saved: boolean) => {
+          p.save_count += saved === p.saved ? 0 : saved ? 1 : -1;
+          p.saved = saved;
+          ui.renderSave(p.save_count, p.saved);
+        };
+        apply(next);
+        const err = await setSaved(p.id, next);
+        if (err) {
+          apply(!next);
+          console.error("Couldn't update save:", err);
+        }
+      };
+      const ui = cardElement(p, minimize, (src, alt) => setLightbox({ src, alt }), toggleSave);
+      const marker = new Marker({ element: ui.el, anchor: "bottom", offset: [0, -CARD_LIFT] })
         .setLngLat([p.lng, p.lat])
         .addTo(map);
-      cards.set(key, marker);
+      cards.set(key, { marker, renderSave: ui.renderSave });
     }
   }, []);
 

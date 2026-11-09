@@ -12,7 +12,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`.
+   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`.
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
@@ -40,7 +40,8 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 - `components/PostForm.tsx`: the form that opens when you click the map.
 - `components/ImagePicker.tsx`: photo picker with preview. Photos are resized to 1600px WebP in the browser, then uploaded to the `post-images` Storage bucket under the user's own folder.
 - `components/NavMenu.tsx`: the hamburger menu (Map, Profile, Settings).
-- `app/profile`: lists your posts with edit, delete and "view on map".
+- `app/profile`: your posts (edit, delete, view on map, save counts) and your saved posts.
+- Saves: bookmark button with a count on each card, stored in `post_saves` (one row per user per post).
 - `app/settings`: placeholder.
 - `lib/supabase.ts`: the client plus the two calls the app makes.
 - `supabase/schema.sql`: the `posts` table with a PostGIS `location` column and spatial index, and two functions:

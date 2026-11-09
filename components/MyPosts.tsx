@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Select from "./Select";
 import ImagePicker from "./ImagePicker";
-import Lightbox from "./Lightbox";
+import PostSummary, { fmtDate, saveLabel } from "./PostSummary";
 import { CATEGORIES, deletePost, fetchMyPosts, imageUrl, Post, updatePost } from "@/lib/supabase";
-
-const fmtDate = (d: string) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
 export default function MyPosts() {
   const [posts, setPosts] = useState<Post[] | null>(null);
@@ -61,8 +59,6 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
   const [body, setBody] = useState(post.body);
   const [category, setCategory] = useState(post.category);
   const [image, setImage] = useState<File | null | undefined>(undefined); // undefined = unchanged
-  const [expanded, setExpanded] = useState(false);
-  const closeExpanded = useCallback(() => setExpanded(false), []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -161,43 +157,16 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
   }
 
   return (
-    <article className="card p-4">
-      <div className="flex gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <span className="font-medium uppercase tracking-wide">{post.category}</span>
-            {expired && <span className="rounded-full border border-line px-2 py-0.5">Expired</span>}
-          </div>
-          <h3 className="mt-1 text-sm font-semibold">{post.title}</h3>
-          {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
-        </div>
-        {post.image_path && (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            aria-label="Expand photo"
-            className="shrink-0 cursor-zoom-in rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageUrl(post.image_path)}
-              alt=""
-              loading="lazy"
-              className="size-20 rounded-lg border border-line object-cover"
-            />
-          </button>
-        )}
-        <Lightbox
-          image={expanded && post.image_path ? { src: imageUrl(post.image_path), alt: post.title } : null}
-          onClose={closeExpanded}
-        />
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-        <span className="text-xs text-muted">
-          Posted {fmtDate(post.created_at)} · {expired ? "Expired" : "Expires"} {fmtDate(post.expires_at)}
-        </span>
-        <div className="flex gap-1">
+    <PostSummary
+      post={post}
+      meta={
+        <>
+          Posted {fmtDate(post.created_at)} · {expired ? "Expired" : "Expires"} {fmtDate(post.expires_at)} ·{" "}
+          {saveLabel(post.save_count)}
+        </>
+      }
+      actions={
+        <>
           <Link href={`/?lat=${post.lat}&lng=${post.lng}`} className="btn-ghost h-8 px-3">
             View on map
           </Link>
@@ -207,13 +176,9 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
           <button onClick={remove} disabled={busy} className="btn-ghost h-8 px-3 text-danger">
             Delete
           </button>
-        </div>
-      </div>
-      {error && (
-        <p role="alert" className="mt-2 text-sm text-danger">
-          {error}
-        </p>
-      )}
-    </article>
+        </>
+      }
+      error={error}
+    />
   );
 }
