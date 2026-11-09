@@ -30,52 +30,72 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
   return (
     <form
       onSubmit={submit}
-      className="absolute inset-y-0 left-0 z-10 flex w-[min(92vw,380px)] flex-col gap-3 overflow-y-auto bg-white dark:bg-gray-900 p-4 shadow-xl"
+      className="floating absolute inset-y-0 left-0 z-10 flex w-[min(92vw,380px)] flex-col border-y-0 border-l-0"
     >
-      <h2 className="font-semibold text-gray-900 dark:text-gray-100">New post</h2>
+      <header className="border-b border-line p-4">
+        <h2 className="text-lg font-semibold">New post</h2>
+        <p className="text-xs text-muted">Pinned where you clicked on the map.</p>
+      </header>
 
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        maxLength={80}
-        placeholder="Title"
-        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-3 py-2 text-sm"
-        autoFocus
-      />
-      <textarea
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        maxLength={500}
-        rows={3}
-        placeholder="What's going on?"
-        className="w-full resize-none rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-3 py-2 text-sm"
-      />
-      <select
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-3 py-2 text-sm"
-      >
-        {CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+        <div>
+          <label htmlFor="post-title" className="field-label">
+            Title
+          </label>
+          <input
+            id="post-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={80}
+            placeholder="Garage sale this Saturday"
+            className="input"
+            autoFocus
+          />
+        </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+        <div>
+          <label htmlFor="post-category" className="field-label">
+            Category
+          </label>
+          <select id="post-category" value={category} onChange={(e) => setCategory(e.target.value)} className="input">
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-lg px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <div className="flex flex-1 flex-col">
+          <label htmlFor="post-body" className="field-label">
+            Details
+          </label>
+          <textarea
+            id="post-body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            maxLength={500}
+            placeholder="What's going on?"
+            className="input min-h-32 flex-1 resize-none"
+          />
+          <span className="mt-1.5 self-end text-xs text-muted">{body.length}/500</span>
+        </div>
+
+        {error && (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        )}
+      </div>
+
+      <footer className="flex justify-end gap-2 border-t border-line p-4">
+        <button type="button" onClick={onCancel} className="btn-ghost">
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/85 disabled:opacity-50"
-        >
+        <button type="submit" disabled={saving} className="btn-primary">
           {saving ? "Posting…" : "Post"}
         </button>
-      </div>
+      </footer>
     </form>
   );
 }

@@ -4,13 +4,80 @@
 /* Dark mode is driven by a .dark class on <html> (set from Settings) */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Accent color comes from a CSS variable so it can change at runtime.
-   Use it as bg-accent, text-accent, ring-accent, etc. */
+/* ------------------------------------------------------------------
+   Design tokens. Every color in the app comes from this list.
+   All text/background pairs meet WCAG AA (4.5:1) in both themes.
+   ------------------------------------------------------------------ */
 :root {
-  --accent: #e8590c;
+  --accent-light: #c2410c;
+  --accent-dark: #fb923c;
+
+  --bg: #f5f6f8;        /* page background */
+  --surface: #ffffff;   /* cards, panels, menus */
+  --surface-2: #eef0f3; /* inputs, hover states */
+  --line: #dfe2e7;      /* borders, dividers */
+  --fg: #14171c;        /* main text */
+  --muted: #5c6470;     /* secondary text */
+  --danger: #c92a2a;
+  --accent: var(--accent-light);
+  --on-accent: #ffffff; /* text on accent buttons */
+  color-scheme: light;
 }
+
+.dark {
+  --bg: #0d0f13;
+  --surface: #171a20;
+  --surface-2: #232730;
+  --line: #2e333d;
+  --fg: #eceef2;
+  --muted: #9ea6b3;
+  --danger: #ff8787;
+  --accent: var(--accent-dark);
+  --on-accent: #0d0f13;
+  color-scheme: dark;
+}
+
 @theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-danger: var(--danger);
   --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+}
+
+/* ------------------------------------------------------------------
+   Type scale: text-xs (meta), text-sm (body + UI), text-lg (titles).
+   Radius: rounded-lg (controls), rounded-xl (cards/panels).
+   ------------------------------------------------------------------ */
+@utility card {
+  @apply rounded-xl border border-line bg-surface;
+}
+@utility floating {
+  @apply border border-line bg-surface shadow-lg shadow-black/10 dark:shadow-black/40;
+}
+@utility field-label {
+  @apply mb-1.5 block text-xs font-medium text-muted;
+}
+@utility input {
+  @apply w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-fg placeholder:text-muted
+    focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30;
+}
+@utility btn {
+  @apply inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-accent text-on-accent hover:opacity-90;
+}
+@utility btn-ghost {
+  @apply btn text-fg hover:bg-surface-2;
+}
+@utility link {
+  @apply font-medium text-accent hover:underline;
 }
 
 html,
@@ -19,49 +86,74 @@ body {
   margin: 0;
 }
 
+/* ------------------------------------------------------------------
+   MapLibre popups and controls, themed with the same tokens
+   ------------------------------------------------------------------ */
 .maplibregl-popup-content {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--line);
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
   max-width: 260px;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.15);
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--surface);
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--surface);
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--surface);
+}
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--surface);
+}
+.maplibregl-popup-close-button {
+  color: var(--muted);
+  font-size: 1.125rem;
+  padding: 0 0.5rem;
+  border-radius: 0 0.75rem 0 0.5rem;
+}
+.maplibregl-popup-close-button:hover {
+  background: var(--surface-2);
 }
 
-/* Dark versions of MapLibre's popups and controls */
-.dark .maplibregl-popup-content {
-  background: #1f2937;
-  color: #f3f4f6;
+.maplibregl-ctrl-group {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  box-shadow: none !important;
+  overflow: hidden;
 }
-.dark .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
-.dark .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
-.dark .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
-  border-top-color: #1f2937;
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--line);
 }
-.dark .maplibregl-popup-anchor-top .maplibregl-popup-tip,
-.dark .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
-.dark .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
-  border-bottom-color: #1f2937;
-}
-.dark .maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-right-color: #1f2937;
-}
-.dark .maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-left-color: #1f2937;
-}
-.dark .maplibregl-popup-close-button {
-  color: #d1d5db;
-}
-.dark .maplibregl-ctrl-group {
-  background: #1f2937;
-}
-.dark .maplibregl-ctrl-group button + button {
-  border-top-color: #374151;
+.maplibregl-ctrl-group button:not(:disabled):hover {
+  background: var(--surface-2);
 }
 .dark .maplibregl-ctrl button .maplibregl-ctrl-icon {
   filter: invert(1);
 }
-.dark .maplibregl-ctrl-attrib {
-  background: rgb(17 24 39 / 0.7);
-  color: #d1d5db;
+.maplibregl-ctrl-top-right {
+  padding: 6px 6px 0 0; /* + MapLibre's 10px margin = 16px, matching the menu button */
 }
-.dark .maplibregl-ctrl-attrib a {
-  color: #e5e7eb;
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--muted);
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--fg);
+}
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.dark .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
 }

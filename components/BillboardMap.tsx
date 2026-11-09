@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, Popup, setWorkerUrl } from "maplibre-gl";
 import { fetchPostsInView, Post, supabase } from "@/lib/supabase";
-import { ACCENTS, Theme } from "@/lib/settings";
+import { cssToken, Theme } from "@/lib/settings";
 import { useSettings } from "./SettingsProvider";
 import PostForm from "./PostForm";
 import NavMenu from "./NavMenu";
@@ -42,18 +42,20 @@ function toGeoJSON(posts: Post[]): GeoJSON.FeatureCollection {
 function popupContent(props: Record<string, string>): HTMLElement {
   const el = document.createElement("div");
   const cat = document.createElement("div");
-  cat.className = "text-xs uppercase tracking-wide text-accent";
+  cat.className = "text-xs font-medium uppercase tracking-wide text-accent";
   cat.textContent = props.category;
   const title = document.createElement("div");
-  title.className = "font-semibold";
+  title.className = "mt-1 pr-4 text-sm font-semibold";
   title.textContent = props.title;
   const body = document.createElement("p");
-  body.className = "mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap";
+  body.className = "mt-1 whitespace-pre-wrap text-sm text-muted";
   body.textContent = props.body;
   const date = document.createElement("div");
-  date.className = "mt-2 text-xs text-gray-400";
-  date.textContent = new Date(props.created_at).toLocaleDateString();
-  el.append(cat, title, body, date);
+  date.className = "mt-2 text-xs text-muted";
+  date.textContent = new Date(props.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  el.append(cat, title);
+  if (props.body) el.append(body);
+  el.append(date);
   return el;
 }
 
@@ -62,8 +64,9 @@ function currentTheme(): Theme {
   return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
-function currentAccentColor(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || ACCENTS.orange;
+// Pin colors come from the same CSS tokens as the rest of the UI
+function pinPaint() {
+  return { fill: cssToken("--accent"), stroke: cssToken("--surface") };
 }
 
 export default function BillboardMap() {
@@ -116,15 +119,16 @@ export default function BillboardMap() {
     map.on("style.load", () => {
       if (map.getSource("posts")) return;
       map.addSource("posts", { type: "geojson", data: toGeoJSON(postsRef.current) });
+      const pin = pinPaint();
       map.addLayer({
         id: "posts",
         type: "circle",
         source: "posts",
         paint: {
           "circle-radius": 8,
-          "circle-color": currentAccentColor(),
+          "circle-color": pin.fill,
           "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
+          "circle-stroke-color": pin.stroke,
         },
       });
     });
@@ -167,7 +171,7 @@ export default function BillboardMap() {
   // Recolor pins when the accent changes
   useEffect(() => {
     const map = mapRef.current;
-    if (map?.getLayer("posts")) map.setPaintProperty("posts", "circle-color", ACCENTS[accent]);
+    if (map?.getLayer("posts")) map.setPaintProperty("posts", "circle-color", pinPaint().fill);
   }, [accent]);
 
   // Keep the draft marker in sync with draft state
@@ -176,9 +180,9 @@ export default function BillboardMap() {
     if (!map) return;
     draftMarkerRef.current?.remove();
     draftMarkerRef.current = draft
-      ? new Marker({ color: currentAccentColor() }).setLngLat([draft.lng, draft.lat]).addTo(map)
+      ? new Marker({ color: pinPaint().fill }).setLngLat([draft.lng, draft.lat]).addTo(map)
       : null;
-  }, [draft, accent]);
+  }, [draft, accent, theme]);
 
   return (
     <>

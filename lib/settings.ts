@@ -1,13 +1,15 @@
 export type Theme = "light" | "dark";
 
+// Each accent has a darker shade for light mode and a lighter one for dark mode,
+// so text and buttons stay above WCAG AA contrast (4.5:1) in both themes.
 export const ACCENTS = {
-  orange: "#e8590c",
-  red: "#e03131",
-  pink: "#d6336c",
-  purple: "#7048e8",
-  blue: "#1c7ed6",
-  teal: "#0c8599",
-  green: "#2f9e44",
+  orange: { light: "#c2410c", dark: "#fb923c" },
+  red: { light: "#b91c1c", dark: "#f87171" },
+  pink: { light: "#be185d", dark: "#f472b6" },
+  purple: { light: "#6d28d9", dark: "#a78bfa" },
+  blue: { light: "#1d4ed8", dark: "#60a5fa" },
+  teal: { light: "#0f766e", dark: "#2dd4bf" },
+  green: { light: "#15803d", dark: "#4ade80" },
 } as const;
 
 export type Accent = keyof typeof ACCENTS;
@@ -19,11 +21,11 @@ export const STORAGE_KEYS = { theme: "mb-theme", accent: "mb-accent" } as const;
 // Runs in <head> before the page paints, so there's no flash of the wrong theme.
 // Keep it in sync with applyTheme/applyAccent below.
 export const themeInitScript = `(function(){try{
-var t=localStorage.getItem("${STORAGE_KEYS.theme}");
+var d=document.documentElement,t=localStorage.getItem("${STORAGE_KEYS.theme}");
 if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";
-document.documentElement.classList.toggle("dark",t==="dark");
-var a=${JSON.stringify(ACCENTS)}[localStorage.getItem("${STORAGE_KEYS.accent}")]||"${ACCENTS[DEFAULT_ACCENT]}";
-document.documentElement.style.setProperty("--accent",a);
+d.classList.toggle("dark",t==="dark");
+var A=${JSON.stringify(ACCENTS)},a=A[localStorage.getItem("${STORAGE_KEYS.accent}")]||A["${DEFAULT_ACCENT}"];
+d.style.setProperty("--accent-light",a.light);d.style.setProperty("--accent-dark",a.dark);
 }catch(e){}})();`;
 
 export function applyTheme(theme: Theme) {
@@ -31,5 +33,12 @@ export function applyTheme(theme: Theme) {
 }
 
 export function applyAccent(accent: Accent) {
-  document.documentElement.style.setProperty("--accent", ACCENTS[accent]);
+  const s = document.documentElement.style;
+  s.setProperty("--accent-light", ACCENTS[accent].light);
+  s.setProperty("--accent-dark", ACCENTS[accent].dark);
+}
+
+// Resolved value of a CSS color token for the current theme (used by the map)
+export function cssToken(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }

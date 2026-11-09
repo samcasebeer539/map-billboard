@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CATEGORIES, deletePost, fetchMyPosts, Post, updatePost } from "@/lib/supabase";
 
+const fmtDate = (d: string) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
 export default function MyPosts() {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,28 +20,32 @@ export default function MyPosts() {
     load();
   }, []);
 
-  if (posts === null) return <p className="text-gray-500">Loading…</p>;
-
   return (
-    <section className="space-y-3">
+    <section className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Your posts</h2>
-        <span className="text-sm text-gray-500">{posts.length} total</span>
+        <h2 className="text-sm font-semibold">Your posts</h2>
+        {posts && <span className="text-xs text-muted">{posts.length} total</span>}
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">{error}</p>}
+      {posts === null && <p className="text-sm text-muted">Loading…</p>}
 
-      {!error && posts.length === 0 && (
-        <div className="rounded-xl bg-white dark:bg-gray-900 p-6 text-gray-600 dark:text-gray-400 shadow-sm">
+      {error && (
+        <p role="alert" className="card border-danger/40 p-4 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      {posts && !error && posts.length === 0 && (
+        <div className="card p-6 text-center text-sm text-muted">
           You haven&apos;t posted anything yet.{" "}
-          <Link href="/" className="text-accent hover:underline">
-            Go to the map
+          <Link href="/" className="link">
+            Open the map
           </Link>{" "}
           and click anywhere to make your first post.
         </div>
       )}
 
-      {posts.map((p) => (
+      {posts?.map((p) => (
         <PostRow key={p.id} post={p} onChanged={load} />
       ))}
     </section>
@@ -59,6 +65,7 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
   async function save() {
     if (!title.trim()) return setError("Title can't be empty.");
     setBusy(true);
+    setError(null);
     const err = await updatePost(post.id, { title: title.trim(), body: body.trim(), category });
     setBusy(false);
     if (err) return setError(err);
@@ -76,40 +83,48 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
   }
 
   if (editing) {
+    const id = `edit-${post.id}`;
     return (
-      <div className="space-y-2 rounded-xl bg-white dark:bg-gray-900 p-4 shadow-sm">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={80}
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-3 py-2 text-sm"
-        />
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          maxLength={500}
-          rows={3}
-          className="w-full resize-none rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-3 py-2 text-sm"
-        />
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-3 py-2 text-sm"
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="card flex flex-col gap-4 p-4">
+        <div>
+          <label htmlFor={`${id}-title`} className="field-label">
+            Title
+          </label>
+          <input id={`${id}-title`} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} className="input" />
+        </div>
+        <div>
+          <label htmlFor={`${id}-category`} className="field-label">
+            Category
+          </label>
+          <select id={`${id}-category`} value={category} onChange={(e) => setCategory(e.target.value)} className="input">
+            {CATEGORIES.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor={`${id}-body`} className="field-label">
+            Details
+          </label>
+          <textarea
+            id={`${id}-body`}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            maxLength={500}
+            rows={4}
+            className="input resize-none"
+          />
+        </div>
+        {error && (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        )}
         <div className="flex justify-end gap-2">
-          <button onClick={() => setEditing(false)} className="rounded-lg px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <button onClick={() => setEditing(false)} className="btn-ghost">
             Cancel
           </button>
-          <button
-            onClick={save}
-            disabled={busy}
-            className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent/85 disabled:opacity-50"
-          >
+          <button onClick={save} disabled={busy} className="btn-primary">
             Save
           </button>
         </div>
@@ -118,33 +133,35 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
   }
 
   return (
-    <div className="rounded-xl bg-white dark:bg-gray-900 p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs uppercase tracking-wide text-gray-500">
-            {post.category}
-            {expired && <span className="ml-2 rounded bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 normal-case text-gray-600 dark:text-gray-400">expired</span>}
-          </div>
-          <div className="font-semibold text-gray-900 dark:text-gray-100">{post.title}</div>
-          {post.body && <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">{post.body}</p>}
-          <div className="mt-2 text-xs text-gray-400">
-            Posted {new Date(post.created_at).toLocaleDateString()} · {expired ? "expired" : "expires"}{" "}
-            {new Date(post.expires_at).toLocaleDateString()}
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
-          <Link href={`/?lat=${post.lat}&lng=${post.lng}`} className="text-accent hover:underline">
+    <article className="card p-4">
+      <div className="flex items-center gap-2 text-xs text-muted">
+        <span className="font-medium uppercase tracking-wide">{post.category}</span>
+        {expired && <span className="rounded-full border border-line px-2 py-0.5">Expired</span>}
+      </div>
+      <h3 className="mt-1 text-sm font-semibold">{post.title}</h3>
+      {post.body && <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{post.body}</p>}
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+        <span className="text-xs text-muted">
+          Posted {fmtDate(post.created_at)} · {expired ? "Expired" : "Expires"} {fmtDate(post.expires_at)}
+        </span>
+        <div className="flex gap-1">
+          <Link href={`/?lat=${post.lat}&lng=${post.lng}`} className="btn-ghost h-8 px-3">
             View on map
           </Link>
-          <button onClick={() => setEditing(true)} className="text-gray-600 dark:text-gray-400 hover:underline">
+          <button onClick={() => setEditing(true)} className="btn-ghost h-8 px-3">
             Edit
           </button>
-          <button onClick={remove} disabled={busy} className="text-red-600 hover:underline disabled:opacity-50">
+          <button onClick={remove} disabled={busy} className="btn-ghost h-8 px-3 text-danger">
             Delete
           </button>
         </div>
       </div>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-    </div>
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+    </article>
   );
 }
