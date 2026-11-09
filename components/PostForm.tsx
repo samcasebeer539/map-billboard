@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Select from "./Select";
 import { CATEGORIES, createPost } from "@/lib/supabase";
 
 type Props = {
@@ -57,13 +58,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
           <label htmlFor="post-category" className="field-label">
             Category
           </label>
-          <select id="post-category" value={category} onChange={(e) => setCategory(e.target.value)} className="input">
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+          <Select id="post-category" value={category} options={CATEGORIES} onChange={setCategory} />
         </div>
 
         <div className="flex flex-1 flex-col">

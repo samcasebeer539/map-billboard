@@ -60,18 +60,16 @@ function postContent(p: Pick<Post, "category" | "title" | "body" | "created_at">
   return el;
 }
 
-// Zoomed-in view: a card on a short stem, ending in a dot at the post's location
+// Zoomed-in view: a card with a small triangle pointing at the post's location
 function cardElement(p: Post): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "post-card flex flex-col items-center";
   const card = document.createElement("div");
   card.className = "floating w-60 rounded-xl p-3";
   card.append(postContent(p));
-  const stem = document.createElement("div");
-  stem.className = "h-3 w-0.5 bg-line";
-  const dot = document.createElement("div");
-  dot.className = "size-3 rounded-full border-2 border-surface bg-accent";
-  wrap.append(card, stem, dot);
+  const tip = document.createElement("div");
+  tip.className = "card-tip";
+  wrap.append(card, tip);
   // Bring the hovered card above its neighbours
   wrap.addEventListener("mouseenter", () => (wrap.style.zIndex = "1"));
   wrap.addEventListener("mouseleave", () => (wrap.style.zIndex = ""));
@@ -180,7 +178,7 @@ export default function BillboardMap() {
     }
     for (const [key, p] of wanted) {
       if (cards.has(key)) continue;
-      const marker = new Marker({ element: cardElement(p), anchor: "bottom", offset: [0, 6] })
+      const marker = new Marker({ element: cardElement(p), anchor: "bottom", offset: [0, -3] })
         .setLngLat([p.lng, p.lat])
         .addTo(map);
       cards.set(key, marker);

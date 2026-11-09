@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Select from "./Select";
 import { CATEGORIES, deletePost, fetchMyPosts, Post, updatePost } from "@/lib/supabase";
 
 const fmtDate = (d: string) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -96,11 +97,7 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
           <label htmlFor={`${id}-category`} className="field-label">
             Category
           </label>
-          <select id={`${id}-category`} value={category} onChange={(e) => setCategory(e.target.value)} className="input">
-            {CATEGORIES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
+          <Select id={`${id}-category`} value={category} options={CATEGORIES} onChange={setCategory} />
         </div>
         <div>
           <label htmlFor={`${id}-body`} className="field-label">
