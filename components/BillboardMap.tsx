@@ -3,13 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, Popup, setWorkerUrl } from "maplibre-gl";
 import { fetchPostsInView, Post, supabase } from "@/lib/supabase";
+import { ACCENTS, Theme } from "@/lib/settings";
+import { useSettings } from "./SettingsProvider";
 import PostForm from "./PostForm";
 import NavMenu from "./NavMenu";
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-const STYLE_URL = MAPTILER_KEY
-  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`
-  : "https://tiles.openfreemap.org/styles/liberty"; // free, no key
+const STYLE_URLS: Record<Theme, string> = MAPTILER_KEY
+  ? {
+      light: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
+      dark: `https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${MAPTILER_KEY}`,
+    }
+  : {
+      // OpenFreeMap: free, no key
+      light: "https://tiles.openfreemap.org/styles/liberty",
+      dark: "https://tiles.openfreemap.org/styles/dark",
+    };
 
 // MapLibre 6 runs tile parsing in a web worker. Bundlers can't resolve its default
 // worker path, so we serve a copy from /public (copied there by scripts/copy-maplibre-worker.mjs).
@@ -33,13 +42,13 @@ function toGeoJSON(posts: Post[]): GeoJSON.FeatureCollection {
 function popupContent(props: Record<string, string>): HTMLElement {
   const el = document.createElement("div");
   const cat = document.createElement("div");
-  cat.className = "text-xs uppercase tracking-wide text-gray-500";
+  cat.className = "text-xs uppercase tracking-wide text-accent";
   cat.textContent = props.category;
   const title = document.createElement("div");
-  title.className = "font-semibold text-gray-900";
+  title.className = "font-semibold";
   title.textContent = props.title;
   const body = document.createElement("p");
-  body.className = "mt-1 text-sm text-gray-700 whitespace-pre-wrap";
+  body.className = "mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap";
   body.textContent = props.body;
   const date = document.createElement("div");
   date.className = "mt-2 text-xs text-gray-400";
@@ -48,11 +57,23 @@ function popupContent(props: Record<string, string>): HTMLElement {
   return el;
 }
 
+// Theme as currently applied to <html> (set before paint by the head script)
+function currentTheme(): Theme {
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
+function currentAccentColor(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || ACCENTS.orange;
+}
+
 export default function BillboardMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
+  const styleThemeRef = useRef<Theme | null>(null);
+  const postsRef = useRef<Post[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
+  const { theme, accent, ready } = useSettings();
 
   const loadPosts = useCallback(async () => {
     const map = mapRef.current;
@@ -64,6 +85,7 @@ export default function BillboardMap() {
       east: b.getEast(),
       north: b.getNorth(),
     });
+    postsRef.current = posts;
     (map.getSource("posts") as GeoJSONSource | undefined)?.setData(toGeoJSON(posts));
   }, []);
 
@@ -76,9 +98,12 @@ export default function BillboardMap() {
     const lng = parseFloat(params.get("lng") ?? "");
     const focus = Number.isFinite(lat) && Number.isFinite(lng);
 
+    const initialTheme = currentTheme();
+    styleThemeRef.current = initialTheme;
+
     const map = new MlMap({
       container: containerRef.current,
-      style: STYLE_URL,
+      style: STYLE_URLS[initialTheme],
       center: focus ? [lng, lat] : START,
       zoom: focus ? 16 : 12,
     });
@@ -86,33 +111,36 @@ export default function BillboardMap() {
     map.addControl(new NavigationControl(), "top-right");
     map.addControl(new GeolocateControl({ trackUserLocation: false }), "top-right");
 
-    map.on("load", () => {
-      map.addSource("posts", { type: "geojson", data: toGeoJSON([]) });
+    // Switching light/dark replaces the whole style, which wipes our layer,
+    // so the posts layer is (re)added every time a style finishes loading.
+    map.on("style.load", () => {
+      if (map.getSource("posts")) return;
+      map.addSource("posts", { type: "geojson", data: toGeoJSON(postsRef.current) });
       map.addLayer({
         id: "posts",
         type: "circle",
         source: "posts",
         paint: {
           "circle-radius": 8,
-          "circle-color": "#e8590c",
+          "circle-color": currentAccentColor(),
           "circle-stroke-width": 2,
           "circle-stroke-color": "#ffffff",
         },
       });
-
-      map.on("click", "posts", (e) => {
-        const f = e.features?.[0];
-        if (!f || f.geometry.type !== "Point") return;
-        new Popup({ offset: 12 })
-          .setLngLat(f.geometry.coordinates as [number, number])
-          .setDOMContent(popupContent(f.properties as Record<string, string>))
-          .addTo(map);
-      });
-      map.on("mouseenter", "posts", () => (map.getCanvas().style.cursor = "pointer"));
-      map.on("mouseleave", "posts", () => (map.getCanvas().style.cursor = ""));
-
-      loadPosts();
     });
+
+    map.on("load", loadPosts);
+
+    map.on("click", "posts", (e) => {
+      const f = e.features?.[0];
+      if (!f || f.geometry.type !== "Point") return;
+      new Popup({ offset: 12 })
+        .setLngLat(f.geometry.coordinates as [number, number])
+        .setDOMContent(popupContent(f.properties as Record<string, string>))
+        .addTo(map);
+    });
+    map.on("mouseenter", "posts", () => (map.getCanvas().style.cursor = "pointer"));
+    map.on("mouseleave", "posts", () => (map.getCanvas().style.cursor = ""));
 
     // Clicking empty map drops a draft pin and opens the form
     map.on("click", (e) => {
@@ -128,15 +156,29 @@ export default function BillboardMap() {
     return () => map.remove();
   }, [loadPosts]);
 
+  // Swap the basemap when the theme changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || styleThemeRef.current === theme) return;
+    styleThemeRef.current = theme;
+    map.setStyle(STYLE_URLS[theme], { diff: false });
+  }, [theme, ready]);
+
+  // Recolor pins when the accent changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map?.getLayer("posts")) map.setPaintProperty("posts", "circle-color", ACCENTS[accent]);
+  }, [accent]);
+
   // Keep the draft marker in sync with draft state
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     draftMarkerRef.current?.remove();
     draftMarkerRef.current = draft
-      ? new Marker({ color: "#1c7ed6" }).setLngLat([draft.lng, draft.lat]).addTo(map)
+      ? new Marker({ color: currentAccentColor() }).setLngLat([draft.lng, draft.lat]).addTo(map)
       : null;
-  }, [draft]);
+  }, [draft, accent]);
 
   return (
     <>
