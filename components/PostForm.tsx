@@ -30,7 +30,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
   return (
     <form
       onSubmit={submit}
-      className="absolute bottom-4 left-1/2 w-[min(92vw,380px)] -translate-x-1/2 space-y-3 rounded-2xl bg-white p-4 shadow-xl"
+      className="absolute inset-y-0 left-0 z-10 flex w-[min(92vw,380px)] flex-col gap-3 overflow-y-auto bg-white p-4 shadow-xl"
     >
       <h2 className="font-semibold text-gray-900">New post</h2>
 

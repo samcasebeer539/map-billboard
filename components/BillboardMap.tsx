@@ -133,15 +133,15 @@ export default function BillboardMap() {
 
   return (
     <>
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="h-full w-full" />
 
-      <div className="pointer-events-none absolute left-4 top-4 rounded-xl bg-white/90 px-4 py-3 shadow-md">
+      {/* <div className="pointer-events-none absolute left-4 top-4 rounded-xl bg-white/90 px-4 py-3 shadow-md">
         <h1 className="text-lg font-bold text-gray-900">Map Billboard</h1>
         <p className="text-sm text-gray-600">Click anywhere on the map to post.</p>
         {!supabase && (
           <p className="mt-1 text-xs text-red-600">Supabase not configured. Posts won&apos;t save.</p>
         )}
-      </div>
+      </div> */}
 
       {draft && (
         <PostForm
