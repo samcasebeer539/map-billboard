@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import PostSummary, { fmtDate, saveLabel } from "./PostSummary";
 import { fetchSavedPosts, Post, setSaved } from "@/lib/supabase";
 
-export default function SavedPosts() {
+// onCount reports how many posts are listed (shown in the Profile tab)
+export default function SavedPosts({ onCount }: { onCount?: (n: number) => void }) {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,13 +17,12 @@ export default function SavedPosts() {
     });
   }, []);
 
+  useEffect(() => {
+    if (posts) onCount?.(posts.length);
+  }, [posts, onCount]);
+
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold">Saved posts</h2>
-        {posts && <span className="text-xs text-muted">{posts.length} total</span>}
-      </div>
-
       {posts === null && <p className="text-sm text-muted">Loading…</p>}
 
       {error && (

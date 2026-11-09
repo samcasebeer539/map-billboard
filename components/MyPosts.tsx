@@ -7,7 +7,8 @@ import ImagePicker from "./ImagePicker";
 import PostSummary, { fmtDate, saveLabel } from "./PostSummary";
 import { CATEGORIES, deletePost, fetchMyPosts, imageUrl, Post, updatePost } from "@/lib/supabase";
 
-export default function MyPosts() {
+// onCount reports how many posts are listed (shown in the Profile tab)
+export default function MyPosts({ onCount }: { onCount?: (n: number) => void }) {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,13 +22,12 @@ export default function MyPosts() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (posts) onCount?.(posts.length);
+  }, [posts, onCount]);
+
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold">Your posts</h2>
-        {posts && <span className="text-xs text-muted">{posts.length} total</span>}
-      </div>
-
       {posts === null && <p className="text-sm text-muted">Loading…</p>}
 
       {error && (
