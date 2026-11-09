@@ -81,15 +81,70 @@ function cardElement(p: Post): HTMLElement {
 // At this zoom and closer, posts show as full cards instead of dots
 const CARD_ZOOM = 15;
 
+// Below this zoom, nearby posts are grouped into numbered clusters.
+// Kept under CARD_ZOOM so clusters have always split apart by the time cards appear.
+const CLUSTER_MAX_ZOOM = 14;
+const POST_LAYERS = ["post-clusters", "post-cluster-count", "posts"];
+
+// Pin colors come from the same CSS tokens as the rest of the UI
+function applyPinColors(map: MlMap) {
+  const fill = cssToken("--accent");
+  const stroke = cssToken("--surface");
+  for (const id of ["posts", "post-clusters"]) {
+    if (!map.getLayer(id)) continue;
+    map.setPaintProperty(id, "circle-color", fill);
+    map.setPaintProperty(id, "circle-stroke-color", stroke);
+  }
+  if (map.getLayer("post-cluster-count")) map.setPaintProperty("post-cluster-count", "text-color", cssToken("--on-accent"));
+}
+
+function addPostLayers(map: MlMap, data: GeoJSON.FeatureCollection) {
+  map.addSource("posts", {
+    type: "geojson",
+    data,
+    cluster: true,
+    clusterRadius: 50,
+    clusterMaxZoom: CLUSTER_MAX_ZOOM,
+  });
+  // Group bubbles, sized by how many posts they hold
+  map.addLayer({
+    id: "post-clusters",
+    type: "circle",
+    source: "posts",
+    filter: ["has", "point_count"],
+    paint: {
+      "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 50, 26],
+      "circle-stroke-width": 3,
+    },
+  });
+  map.addLayer({
+    id: "post-cluster-count",
+    type: "symbol",
+    source: "posts",
+    filter: ["has", "point_count"],
+    layout: {
+      "text-field": ["get", "point_count_abbreviated"],
+      "text-font": ["Noto Sans Bold"],
+      "text-size": 13,
+      "text-allow-overlap": true,
+    },
+  });
+  // Single posts
+  map.addLayer({
+    id: "posts",
+    type: "circle",
+    source: "posts",
+    filter: ["!", ["has", "point_count"]],
+    paint: { "circle-radius": 8, "circle-stroke-width": 2 },
+  });
+  applyPinColors(map);
+}
+
 // Theme as currently applied to <html> (set before paint by the head script)
 function currentTheme(): Theme {
   return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
-// Pin colors come from the same CSS tokens as the rest of the UI
-function pinPaint() {
-  return { fill: cssToken("--accent"), stroke: cssToken("--surface") };
-}
 
 export default function BillboardMap() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -106,7 +161,9 @@ export default function BillboardMap() {
     const map = mapRef.current;
     if (!map) return;
     const showCards = map.getZoom() >= CARD_ZOOM;
-    if (map.getLayer("posts")) map.setLayoutProperty("posts", "visibility", showCards ? "none" : "visible");
+    for (const id of POST_LAYERS) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", showCards ? "none" : "visible");
+    }
 
     const cards = cardsRef.current;
     if (!showCards) {
@@ -171,19 +228,7 @@ export default function BillboardMap() {
     // so the posts layer is (re)added every time a style finishes loading.
     map.on("style.load", () => {
       if (map.getSource("posts")) return;
-      map.addSource("posts", { type: "geojson", data: toGeoJSON(postsRef.current) });
-      const pin = pinPaint();
-      map.addLayer({
-        id: "posts",
-        type: "circle",
-        source: "posts",
-        paint: {
-          "circle-radius": 8,
-          "circle-color": pin.fill,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": pin.stroke,
-        },
-      });
+      addPostLayers(map, toGeoJSON(postsRef.current));
       syncCards();
     });
 
@@ -198,14 +243,25 @@ export default function BillboardMap() {
         .setDOMContent(postContent(f.properties as Post, { closeButton: true }))
         .addTo(map);
     });
-    map.on("mouseenter", "posts", () => (map.getCanvas().style.cursor = "pointer"));
-    map.on("mouseleave", "posts", () => (map.getCanvas().style.cursor = ""));
+    // Clicking a group zooms in far enough to split it apart
+    map.on("click", "post-clusters", async (e) => {
+      const f = e.features?.[0];
+      if (!f || f.geometry.type !== "Point") return;
+      const source = map.getSource("posts") as GeoJSONSource;
+      const zoom = await source.getClusterExpansionZoom(f.properties.cluster_id);
+      map.easeTo({ center: f.geometry.coordinates as [number, number], zoom });
+    });
+
+    for (const layer of ["posts", "post-clusters"]) {
+      map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
+    }
 
     // Clicking empty map drops a draft pin and opens the form
     map.on("click", (e) => {
       if ((e.originalEvent.target as HTMLElement).closest(".post-card")) return; // clicked a card
       if (!map.getLayer("posts")) return;
-      const hit = map.queryRenderedFeatures(e.point, { layers: ["posts"] });
+      const hit = map.queryRenderedFeatures(e.point, { layers: ["posts", "post-clusters"] });
       if (hit.length) return;
       setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng });
     });
@@ -231,7 +287,7 @@ export default function BillboardMap() {
   // Recolor pins when the accent changes
   useEffect(() => {
     const map = mapRef.current;
-    if (map?.getLayer("posts")) map.setPaintProperty("posts", "circle-color", pinPaint().fill);
+    if (map) applyPinColors(map);
   }, [accent]);
 
   // Keep the draft marker in sync with draft state
@@ -240,7 +296,7 @@ export default function BillboardMap() {
     if (!map) return;
     draftMarkerRef.current?.remove();
     draftMarkerRef.current = draft
-      ? new Marker({ color: pinPaint().fill }).setLngLat([draft.lng, draft.lat]).addTo(map)
+      ? new Marker({ color: cssToken("--accent") }).setLngLat([draft.lng, draft.lat]).addTo(map)
       : null;
   }, [draft, accent, theme]);
 
