@@ -7,11 +7,13 @@ type Props = {
   value: string;
   options: readonly string[];
   onChange: (value: string) => void;
+  capitalize?: boolean; // title-case the option text (on by default, e.g. categories)
 };
 
 // Custom dropdown styled with the app's tokens (replaces the native <select>).
 // Keyboard: Up/Down to move, Enter/Space to pick, Escape to close, Home/End, type to jump.
-export default function Select({ id, value, options, onChange }: Props) {
+export default function Select({ id, value, options, onChange, capitalize = true }: Props) {
+  const cap = capitalize ? "capitalize" : "";
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => Math.max(0, options.indexOf(value)));
   const rootRef = useRef<HTMLDivElement>(null);
@@ -98,7 +100,7 @@ export default function Select({ id, value, options, onChange }: Props) {
         aria-activedescendant={open ? `${listId}-${active}` : undefined}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
-        className="input flex items-center justify-between text-left capitalize"
+        className={`input flex items-center justify-between text-left ${cap}`}
       >
         <span>{value}</span>
         <svg
@@ -128,7 +130,7 @@ export default function Select({ id, value, options, onChange }: Props) {
               onMouseEnter={() => setActive(i)}
               onMouseDown={(e) => e.preventDefault()} // keep focus on the button
               onClick={() => choose(i)}
-              className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm capitalize ${
+              className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${cap} ${
                 i === active ? "bg-surface-2" : ""
               } ${o === value ? "font-medium text-accent" : "text-fg"}`}
             >

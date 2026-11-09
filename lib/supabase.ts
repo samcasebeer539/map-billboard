@@ -21,6 +21,18 @@ export type Post = {
 
 const IMAGE_BUCKET = "post-images";
 
+// How long a new post stays up. Labels are what the form shows; values are days.
+export const DURATIONS = {
+  "1 day": 1,
+  "3 days": 3,
+  "1 week": 7,
+  "2 weeks": 14,
+  "1 month": 30,
+  "3 months": 90,
+} as const;
+export type Duration = keyof typeof DURATIONS;
+export const DEFAULT_DURATION: Duration = "1 month";
+
 export const CATEGORIES = ["general", "event", "lost & found", "for sale", "free", "help wanted"] as const;
 
 export async function fetchPostsInView(bounds: {
@@ -50,6 +62,7 @@ export async function createPost(input: {
   lat: number;
   lng: number;
   image: File | null;
+  duration: Duration;
 }): Promise<string | null> {
   if (!supabase) return "Supabase isn't configured yet. See the README.";
   const authError = await ensureSession();
@@ -69,6 +82,7 @@ export async function createPost(input: {
     p_lat: input.lat,
     p_lng: input.lng,
     p_image_path: imagePath,
+    p_duration_days: DURATIONS[input.duration],
   });
   if (error && imagePath) await removeImage(imagePath); // don't leave an orphaned file
   return error ? error.message : null;

@@ -12,7 +12,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`.
+   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`.
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
@@ -46,7 +46,7 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 - `supabase/schema.sql`: the `posts` table with a PostGIS `location` column and spatial index, and two functions:
   - `posts_in_view(min_lng, min_lat, max_lng, max_lat)`: live posts inside the current map bounds
   - `create_post(...)`: the only way to insert (validates coordinates; RLS blocks direct writes)
-- Posts expire after 30 days by default.
+- Posters choose how long a post stays up (1 day to 3 months, default 1 month). Expiry dates show only on the Profile page.
 
 ## Ideas for next steps
 

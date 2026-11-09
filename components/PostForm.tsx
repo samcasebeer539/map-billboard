@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Select from "./Select";
 import ImagePicker from "./ImagePicker";
-import { CATEGORIES, createPost } from "@/lib/supabase";
+import { CATEGORIES, createPost, DEFAULT_DURATION, Duration, DURATIONS } from "@/lib/supabase";
 
 // e.g. 38.58160° N, 121.49440° W (5 decimals ≈ 1 m precision)
 function formatCoords({ lat, lng }: { lat: number; lng: number }) {
@@ -23,6 +23,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [image, setImage] = useState<File | null>(null);
+  const [duration, setDuration] = useState<Duration>(DEFAULT_DURATION);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -31,7 +32,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
     if (!title.trim()) return setError("Give it a title.");
     setSaving(true);
     setError(null);
-    const err = await createPost({ title: title.trim(), body: body.trim(), category, image, ...location });
+    const err = await createPost({ title: title.trim(), body: body.trim(), category, image, duration, ...location });
     setSaving(false);
     if (err) setError(err);
     else onPosted();
@@ -68,6 +69,19 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
             Category
           </label>
           <Select id="post-category" value={category} options={CATEGORIES} onChange={setCategory} />
+        </div>
+
+        <div>
+          <label htmlFor="post-duration" className="field-label">
+            Keep it up for
+          </label>
+          <Select
+            id="post-duration"
+            value={duration}
+            options={Object.keys(DURATIONS)}
+            onChange={(v) => setDuration(v as Duration)}
+            capitalize={false}
+          />
         </div>
 
         <div>
