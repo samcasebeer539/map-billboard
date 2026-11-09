@@ -12,7 +12,8 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor**, paste in `supabase/schema.sql`, and run it.
+   - Open **SQL Editor** and run `supabase/schema.sql`, then `supabase/002_user_posts.sql`.
+   - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
 3. **Environment variables**
@@ -37,6 +38,9 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 
 - `components/BillboardMap.tsx`: the map. Posts are a GeoJSON circle layer, refetched whenever the view moves.
 - `components/PostForm.tsx`: the form that opens when you click the map.
+- `components/NavMenu.tsx`: the hamburger menu (Map, Profile, Settings).
+- `app/profile`: lists your posts with edit, delete and "view on map".
+- `app/settings`: placeholder.
 - `lib/supabase.ts`: the client plus the two calls the app makes.
 - `supabase/schema.sql`: the `posts` table with a PostGIS `location` column and spatial index, and two functions:
   - `posts_in_view(min_lng, min_lat, max_lng, max_lat)`: live posts inside the current map bounds

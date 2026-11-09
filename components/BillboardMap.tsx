@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, Popup, setWorkerUrl } from "maplibre-gl";
 import { fetchPostsInView, Post, supabase } from "@/lib/supabase";
 import PostForm from "./PostForm";
+import NavMenu from "./NavMenu";
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const STYLE_URL = MAPTILER_KEY
@@ -69,11 +70,17 @@ export default function BillboardMap() {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // "View on map" links from the profile page pass ?lat=..&lng=..
+    const params = new URLSearchParams(window.location.search);
+    const lat = parseFloat(params.get("lat") ?? "");
+    const lng = parseFloat(params.get("lng") ?? "");
+    const focus = Number.isFinite(lat) && Number.isFinite(lng);
+
     const map = new MlMap({
       container: containerRef.current,
       style: STYLE_URL,
-      center: START,
-      zoom: 12,
+      center: focus ? [lng, lat] : START,
+      zoom: focus ? 16 : 12,
     });
     mapRef.current = map;
     map.addControl(new NavigationControl(), "top-right");
@@ -134,6 +141,15 @@ export default function BillboardMap() {
   return (
     <>
       <div ref={containerRef} className="h-full w-full" />
+
+      {/* Menu button: sits top-left, slides right when the post form is open */}
+      <div
+        className={`absolute top-4 z-20 transition-[left] duration-200 ${
+          draft ? "left-[calc(min(92vw,380px)+1rem)]" : "left-4"
+        }`}
+      >
+        <NavMenu />
+      </div>
 
       {/* <div className="pointer-events-none absolute left-4 top-4 rounded-xl bg-white/90 px-4 py-3 shadow-md">
         <h1 className="text-lg font-bold text-gray-900">Map Billboard</h1>
