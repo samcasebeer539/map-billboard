@@ -17,7 +17,7 @@ const STYLE_URLS: Record<Theme, string> = MAPTILER_KEY
   : {
       // OpenFreeMap: free, no key
       light: "https://tiles.openfreemap.org/styles/liberty",
-      dark: "https://tiles.openfreemap.org/styles/dark",
+      dark: "https://tiles.openfreemap.org/styles/fiord",
     };
 
 // MapLibre 6 runs tile parsing in a web worker. Bundlers can't resolve its default
@@ -77,7 +77,7 @@ function cardElement(p: Post): HTMLElement {
 }
 
 // At this zoom and closer, posts show as full cards instead of dots
-const CARD_ZOOM = 15;
+const CARD_ZOOM = 14;
 
 // Below this zoom, nearby posts are grouped into numbered clusters.
 // Kept under CARD_ZOOM so clusters have always split apart by the time cards appear.
