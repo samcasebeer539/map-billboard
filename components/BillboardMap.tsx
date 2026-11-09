@@ -7,6 +7,7 @@ import { cssToken, Theme } from "@/lib/settings";
 import { useSettings } from "./SettingsProvider";
 import PostForm from "./PostForm";
 import NavMenu from "./NavMenu";
+import Lightbox, { LightboxImage } from "./Lightbox";
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const STYLE_URLS: Record<Theme, string> = MAPTILER_KEY
@@ -62,26 +63,32 @@ function postContent(p: Pick<Post, "category" | "title" | "body" | "created_at">
 
 // A post card with a close (×) button and a small triangle pointing at its location.
 // This is the only way a post is shown in full; closing it shrinks it back to a dot.
-function cardElement(p: Post, onClose: () => void): HTMLElement {
+function cardElement(p: Post, onClose: () => void, onExpand: (src: string, alt: string) => void): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "post-card flex flex-col items-center";
   const card = document.createElement("div");
   card.className = "floating relative w-60 rounded-xl p-3";
 
   if (p.image_path) {
-    // Photo across the top; click opens the full-size image in a new tab
-    const link = document.createElement("a");
-    link.href = imageUrl(p.image_path);
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.className = "-mx-3 -mt-3 mb-3 block overflow-hidden rounded-t-xl border-b border-line";
+    // Photo across the top at its natural aspect ratio (very tall photos are capped).
+    // Clicking it opens the full-size photo in the in-page viewer.
+    const src = imageUrl(p.image_path);
+    const expand = document.createElement("button");
+    expand.type = "button";
+    expand.setAttribute("aria-label", "Expand photo");
+    expand.className =
+      "-mx-3 -mt-3 mb-3 block w-[calc(100%+1.5rem)] cursor-zoom-in overflow-hidden rounded-t-xl border-b border-line bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent";
     const img = document.createElement("img");
-    img.src = link.href;
+    img.src = src;
     img.alt = p.title;
     img.loading = "lazy";
-    img.className = "h-36 w-full object-cover";
-    link.append(img);
-    card.append(link);
+    img.className = "block h-auto max-h-80 w-full object-cover";
+    expand.append(img);
+    expand.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onExpand(src, p.title);
+    });
+    card.append(expand);
   }
   card.append(postContent(p));
 
@@ -189,7 +196,9 @@ export default function BillboardMap() {
   const minimizedRef = useRef(new Set<string>());
   const cardsRef = useRef(new Map<string, Marker>()); // key: id + content, so edits re-render
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
+  const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
   const { theme, accent, ready } = useSettings();
+  const closeLightbox = useCallback(() => setLightbox(null), []);
 
   // Decide which posts show as cards: everything when zoomed in (unless minimized),
   // plus any post the user opened by clicking its dot.
@@ -217,7 +226,7 @@ export default function BillboardMap() {
         minimizedRef.current.add(p.id);
         syncCards();
       };
-      const marker = new Marker({ element: cardElement(p, minimize), anchor: "bottom", offset: [0, -CARD_LIFT] })
+      const marker = new Marker({ element: cardElement(p, minimize, (src, alt) => setLightbox({ src, alt })), anchor: "bottom", offset: [0, -CARD_LIFT] })
         .setLngLat([p.lng, p.lat])
         .addTo(map);
       cards.set(key, marker);
@@ -369,6 +378,8 @@ export default function BillboardMap() {
           }}
         />
       )}
+
+      <Lightbox image={lightbox} onClose={closeLightbox} />
     </>
   );
 }
