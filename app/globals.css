@@ -51,7 +51,8 @@
 
 /* ------------------------------------------------------------------
    Type scale: text-xs (meta), text-sm (body + UI), text-lg (titles).
-   Radius: rounded-lg (controls), rounded-xl (cards/panels).
+   Radius: rounded-lg (controls), rounded-xl (cards/panels),
+   rounded-md for small buttons nested inside another rounded element.
    ------------------------------------------------------------------ */
 @utility card {
   @apply rounded-xl border border-line bg-surface;
@@ -75,6 +76,9 @@
 }
 @utility btn-ghost {
   @apply btn text-fg hover:bg-surface-2;
+}
+@utility btn-ghost-sm {
+  @apply btn-ghost h-8 px-3;
 }
 @utility link {
   @apply font-medium text-accent hover:underline;

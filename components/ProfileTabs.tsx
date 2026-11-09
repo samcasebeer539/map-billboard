@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyboardEvent, useRef, useState } from "react";
+import { KeyboardEvent, useCallback, useRef, useState } from "react";
 import MyPosts from "./MyPosts";
 import SavedPosts from "./SavedPosts";
 
@@ -17,8 +17,8 @@ export default function ProfileTabs() {
   const [counts, setCounts] = useState<Record<TabId, number | null>>({ mine: null, saved: null });
   const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({ mine: null, saved: null });
 
-  const setMine = useRef((n: number) => setCounts((c) => ({ ...c, mine: n }))).current;
-  const setSaved = useRef((n: number) => setCounts((c) => ({ ...c, saved: n }))).current;
+  const setMineCount = useCallback((n: number) => setCounts((c) => ({ ...c, mine: n })), []);
+  const setSavedCount = useCallback((n: number) => setCounts((c) => ({ ...c, saved: n })), []);
 
   // Left/Right arrows move between tabs (standard tablist keyboard behavior)
   function onKeyDown(e: KeyboardEvent) {
@@ -60,10 +60,10 @@ export default function ProfileTabs() {
       </div>
 
       <div id="panel-mine" role="tabpanel" aria-labelledby="tab-mine" hidden={tab !== "mine"}>
-        <MyPosts onCount={setMine} />
+        <MyPosts onCount={setMineCount} />
       </div>
       <div id="panel-saved" role="tabpanel" aria-labelledby="tab-saved" hidden={tab !== "saved"}>
-        <SavedPosts onCount={setSaved} />
+        <SavedPosts onCount={setSavedCount} />
       </div>
     </div>
   );

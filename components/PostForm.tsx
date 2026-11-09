@@ -3,7 +3,8 @@
 import { FormEvent, useState } from "react";
 import Select from "./Select";
 import ImagePicker from "./ImagePicker";
-import { CATEGORIES, createPost, DEFAULT_DURATION, Duration, DURATIONS } from "@/lib/supabase";
+import Field from "./Field";
+import { BODY_MAX, CATEGORIES, createPost, DEFAULT_DURATION, Duration, DURATIONS, TITLE_MAX } from "@/lib/supabase";
 
 // e.g. 38.58160° N, 121.49440° W (5 decimals ≈ 1 m precision)
 function formatCoords({ lat, lng }: { lat: number; lng: number }) {
@@ -18,6 +19,7 @@ type Props = {
   onPosted: () => void;
 };
 
+// Side panel (full screen on phones) for writing a new post at the clicked location
 export default function PostForm({ location, onCancel, onPosted }: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -41,7 +43,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
   return (
     <form
       onSubmit={submit}
-      className="floating absolute inset-y-0 left-0 z-10 flex w-[min(92vw,380px)] flex-col border-y-0 border-l-0"
+      className="floating absolute inset-y-0 left-0 z-10 flex w-full flex-col border-y-0 border-l-0 max-sm:border-r-0 sm:w-95"
     >
       <header className="border-b border-line p-4">
         <h2 className="text-lg font-semibold">New post</h2>
@@ -49,32 +51,23 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
       </header>
 
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <div>
-          <label htmlFor="post-title" className="field-label">
-            Title
-          </label>
+        <Field id="post-title" label="Title">
           <input
             id="post-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            maxLength={80}
+            maxLength={TITLE_MAX}
             placeholder="Garage sale this Saturday"
             className="input"
             autoFocus
           />
-        </div>
+        </Field>
 
-        <div>
-          <label htmlFor="post-category" className="field-label">
-            Category
-          </label>
+        <Field id="post-category" label="Category">
           <Select id="post-category" value={category} options={CATEGORIES} onChange={setCategory} />
-        </div>
+        </Field>
 
-        <div>
-          <label htmlFor="post-duration" className="field-label">
-            Keep it up for
-          </label>
+        <Field id="post-duration" label="Keep it up for">
           <Select
             id="post-duration"
             value={duration}
@@ -82,12 +75,9 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
             onChange={(v) => setDuration(v as Duration)}
             capitalize={false}
           />
-        </div>
+        </Field>
 
-        <div>
-          <label htmlFor="post-image" className="field-label">
-            Photo <span className="font-normal">(optional)</span>
-          </label>
+        <Field id="post-image" label="Photo" optional>
           <ImagePicker
             id="post-image"
             file={image}
@@ -98,22 +88,22 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
             onRemove={() => setImage(null)}
             onError={setError}
           />
-        </div>
+        </Field>
 
-        <div className="flex flex-1 flex-col">
-          <label htmlFor="post-body" className="field-label">
-            Details
-          </label>
+        {/* Grows to fill the rest of the panel */}
+        <Field id="post-body" label="Details" className="flex flex-1 flex-col">
           <textarea
             id="post-body"
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            maxLength={500}
+            maxLength={BODY_MAX}
             placeholder="What's going on?"
             className="input min-h-32 flex-1 resize-none"
           />
-          <span className="mt-1.5 self-end text-xs text-muted">{body.length}/500</span>
-        </div>
+          <span className="mt-1.5 self-end text-xs text-muted">
+            {body.length}/{BODY_MAX}
+          </span>
+        </Field>
 
         {error && (
           <p role="alert" className="text-sm text-danger">

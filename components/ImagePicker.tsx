@@ -21,7 +21,10 @@ export default function ImagePicker({ id, file, existingUrl, onPick, onRemove, o
 
   // Object URLs for local previews must be revoked when they change
   useEffect(() => {
-    if (!file) return setPreviewUrl(null);
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
@@ -50,7 +53,7 @@ export default function ImagePicker({ id, file, existingUrl, onPick, onRemove, o
             <button type="button" onClick={() => inputRef.current?.click()} className="btn floating h-8 px-3">
               Replace
             </button>
-            <button type="button" onClick={onRemove} aria-label="Remove photo" className="btn floating h-8 px-2.5">
+            <button type="button" onClick={onRemove} aria-label="Remove photo" className="btn floating size-8 px-0">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
                 <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
               </svg>

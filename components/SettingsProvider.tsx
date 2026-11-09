@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { Accent, ACCENTS, applyAccent, applyTheme, DEFAULT_ACCENT, STORAGE_KEYS, Theme } from "@/lib/settings";
+import { Accent, ACCENTS, applyAccent, applyTheme, appliedTheme, DEFAULT_ACCENT, STORAGE_KEYS, Theme } from "@/lib/settings";
 
 type Settings = {
   theme: Theme;
@@ -15,7 +15,7 @@ const SettingsContext = createContext<Settings | null>(null);
 
 function readStored(): { theme: Theme; accent: Accent } {
   // The <head> script already applied these; read them back from the DOM/storage.
-  const theme: Theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+  const theme = appliedTheme();
   let accent: Accent = DEFAULT_ACCENT;
   try {
     const a = localStorage.getItem(STORAGE_KEYS.accent);

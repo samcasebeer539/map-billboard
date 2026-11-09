@@ -7,6 +7,8 @@ import { imageUrl, Post } from "@/lib/supabase";
 export const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
+export const isExpired = (post: Post) => new Date(post.expires_at) < new Date();
+
 export const saveLabel = (n: number) => `${n} ${n === 1 ? "save" : "saves"}`;
 
 // Read-only post card used on the Profile page: content + thumbnail on top,
@@ -24,7 +26,7 @@ export default function PostSummary({
 }) {
   const [expanded, setExpanded] = useState(false);
   const closeExpanded = useCallback(() => setExpanded(false), []);
-  const expired = new Date(post.expires_at) < new Date();
+  const expired = isExpired(post);
 
   return (
     <article className="card p-4">
@@ -59,9 +61,10 @@ export default function PostSummary({
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+      <div className="mt-4 flex flex-col items-start gap-2 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-xs text-muted">{meta}</span>
-        <div className="flex gap-1">{actions}</div>
+        {/* Negative margin lines the buttons' text up with the content edge (buttons have 12px padding) */}
+        <div className="-ml-3 flex gap-1 sm:-mr-3 sm:ml-0">{actions}</div>
       </div>
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">

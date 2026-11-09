@@ -36,24 +36,33 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 
 ## How it works
 
-- `components/BillboardMap.tsx`: the map. Posts are a GeoJSON circle layer, refetched whenever the view moves.
-- `components/PostForm.tsx`: the form that opens when you click the map.
-- `components/ImagePicker.tsx`: photo picker with preview. Photos are resized to 1600px WebP in the browser, then uploaded to the `post-images` Storage bucket under the user's own folder.
-- `components/NavMenu.tsx`: the hamburger menu (Map, Profile, Settings).
-- `app/profile`: your posts (edit, delete, view on map, save counts) and your saved posts.
-- Saves: bookmark button with a count on each card, stored in `post_saves` (one row per user per post).
-- `app/settings`: placeholder.
-- `lib/supabase.ts`: the client plus the two calls the app makes.
-- `supabase/schema.sql`: the `posts` table with a PostGIS `location` column and spatial index, and two functions:
-  - `posts_in_view(min_lng, min_lat, max_lng, max_lat)`: live posts inside the current map bounds
-  - `create_post(...)`: the only way to insert (validates coordinates; RLS blocks direct writes)
-- Posters choose how long a post stays up (1 day to 3 months, default 1 month). Expiry dates show only on the Profile page.
+**Map**
+- `components/BillboardMap.tsx`: creates the map, loads posts for the current view, and decides which posts show as cards.
+- `lib/mapLayers.ts`: map styles, zoom thresholds (`CARD_ZOOM`, `CARD_LIFT`) and the MapLibre layers for dots and groups.
+- `components/PostCard.tsx`: the card shown on the map (photo, text, date, save button, × to minimize).
+- Zoomed out, nearby posts group into numbered bubbles. From `CARD_ZOOM` in, every post shows as a card. Clicking a dot opens its card at any zoom.
+
+**Posting**
+- `components/PostForm.tsx`: the panel that opens when you click the map.
+- `components/ImagePicker.tsx`: photo picker. Photos are resized to 1600px WebP in the browser, then uploaded to the `post-images` bucket under the user's own folder.
+- Posters choose how long a post stays up (1 day to 3 months, default 1 month). Expiry dates only show on the Profile page.
+
+**Profile and settings**
+- `components/ProfileTabs.tsx`: switches between `MyPosts` (edit, delete, save counts) and `SavedPosts`.
+- `components/SettingsForm.tsx`: dark mode and accent color, stored in the browser (`lib/settings.ts`).
+
+**Shared pieces**
+- `app/globals.css`: color tokens (light/dark), the type scale and shared classes (`card`, `input`, `btn-*`, `field-label`).
+- `components/Field.tsx`, `Select.tsx`, `Lightbox.tsx`, `PostSummary.tsx`, `PostList.tsx`: form field, dropdown, photo viewer and Profile list building blocks.
+
+**Data**
+- `lib/supabase.ts`: every call the app makes. Visitors are signed in anonymously the first time they post or save.
+- `supabase/*.sql`: run in order. Posts are only created through `create_post()` and all tables use row-level security, so people can only change their own posts, photos and saves.
 
 ## Ideas for next steps
 
-- Auth (Supabase magic links) so posts have owners and can be edited or deleted
-- Image uploads with Supabase Storage
-- Clustering for dense areas (MapLibre has built-in GeoJSON clustering)
+- Email sign-in (Supabase magic links) so posts follow you across devices
+- More than one photo per post
 - Category filters and colored pins
 - Realtime updates with Supabase Realtime
 - Report button and rate limiting / Cloudflare Turnstile before going public

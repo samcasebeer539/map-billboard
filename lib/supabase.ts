@@ -1,11 +1,18 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
+// Every data call the app makes lives in this file. Functions return an error
+// message string (or null on success) so components can show it directly.
+
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // null when env vars aren't set, so the map still renders without a backend
-export const supabase: SupabaseClient | null =
-  url && anonKey ? createClient(url, anonKey) : null;
+export const supabase: SupabaseClient | null = url && anonKey ? createClient(url, anonKey) : null;
+
+const NOT_CONFIGURED = "Supabase isn't configured yet. See the README.";
+const IMAGE_BUCKET = "post-images";
+
+// ---------- Types and constants ----------
 
 export type Post = {
   id: string;
@@ -21,9 +28,13 @@ export type Post = {
   saved: boolean; // saved by the current visitor
 };
 
-const IMAGE_BUCKET = "post-images";
+// Must match the check constraints in supabase/schema.sql
+export const TITLE_MAX = 80;
+export const BODY_MAX = 500;
 
-// How long a new post stays up. Labels are what the form shows; values are days.
+export const CATEGORIES = ["general", "event", "lost & found", "for sale", "free", "help wanted"] as const;
+
+// How long a new post stays up. Labels are what the form shows; values are days (server allows 1–90).
 export const DURATIONS = {
   "1 day": 1,
   "3 days": 3,
@@ -35,14 +46,36 @@ export const DURATIONS = {
 export type Duration = keyof typeof DURATIONS;
 export const DEFAULT_DURATION: Duration = "1 month";
 
-export const CATEGORIES = ["general", "event", "lost & found", "for sale", "free", "help wanted"] as const;
+// ---------- Session ----------
 
-export async function fetchPostsInView(bounds: {
-  west: number;
-  south: number;
-  east: number;
-  north: number;
-}): Promise<Post[]> {
+// Returns a client with a signed-in session, signing the visitor in anonymously the first time.
+// The session lives in this browser, so "your posts" = posts made from this browser.
+async function signedIn(): Promise<{ db: SupabaseClient; error: null } | { db: null; error: string }> {
+  if (!supabase) return { db: null, error: NOT_CONFIGURED };
+  const { data } = await supabase.auth.getSession();
+  if (data.session) return { db: supabase, error: null };
+  const { error } = await supabase.auth.signInAnonymously();
+  if (!error) return { db: supabase, error: null };
+  return {
+    db: null,
+    error: error.message.toLowerCase().includes("anonymous")
+      ? "Anonymous sign-ins are disabled. Turn them on in Supabase → Authentication → Sign In / Providers."
+      : error.message,
+  };
+}
+
+// Runs a list RPC that needs a session (my_posts, saved_posts)
+async function fetchList(rpc: string): Promise<{ posts: Post[]; error: string | null }> {
+  const { db, error: authError } = await signedIn();
+  if (!db) return { posts: [], error: authError };
+  const { data, error } = await db.rpc(rpc);
+  return { posts: (data as Post[]) ?? [], error: error?.message ?? null };
+}
+
+// ---------- Posts ----------
+
+// Live posts inside the map's current bounds. Doesn't need a session (anyone can browse).
+export async function fetchPostsInView(bounds: { west: number; south: number; east: number; north: number }): Promise<Post[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc("posts_in_view", {
     min_lng: bounds.west,
@@ -57,6 +90,8 @@ export async function fetchPostsInView(bounds: {
   return data as Post[];
 }
 
+export const fetchMyPosts = () => fetchList("my_posts");
+
 export async function createPost(input: {
   title: string;
   body: string;
@@ -66,18 +101,17 @@ export async function createPost(input: {
   image: File | null;
   duration: Duration;
 }): Promise<string | null> {
-  if (!supabase) return "Supabase isn't configured yet. See the README.";
-  const authError = await ensureSession();
-  if (authError) return authError;
+  const { db, error: authError } = await signedIn();
+  if (!db) return authError;
 
   let imagePath: string | null = null;
   if (input.image) {
-    const up = await uploadPostImage(input.image);
+    const up = await uploadPostImage(db, input.image);
     if (up.error) return up.error;
     imagePath = up.path;
   }
 
-  const { error } = await supabase.rpc("create_post", {
+  const { error } = await db.rpc("create_post", {
     p_title: input.title,
     p_body: input.body,
     p_category: input.category,
@@ -86,15 +120,51 @@ export async function createPost(input: {
     p_image_path: imagePath,
     p_duration_days: DURATIONS[input.duration],
   });
-  if (error && imagePath) await removeImage(imagePath); // don't leave an orphaned file
-  return error ? error.message : null;
+  if (error && imagePath) await removeImage(db, imagePath); // don't leave an orphaned file
+  return error?.message ?? null;
+}
+
+// image: undefined = keep current, null = remove, File = replace
+export async function updatePost(
+  post: Post,
+  changes: { title: string; body: string; category: string; image?: File | null }
+): Promise<string | null> {
+  const { db, error: authError } = await signedIn();
+  if (!db) return authError;
+  const { image, ...fields } = changes;
+
+  let imagePath = post.image_path;
+  if (image !== undefined) {
+    imagePath = null;
+    if (image) {
+      const up = await uploadPostImage(db, image);
+      if (up.error) return up.error;
+      imagePath = up.path;
+    }
+  }
+
+  const { error } = await db.from("posts").update({ ...fields, image_path: imagePath }).eq("id", post.id);
+  if (error) {
+    if (imagePath && imagePath !== post.image_path) await removeImage(db, imagePath);
+    return error.message;
+  }
+  if (post.image_path && post.image_path !== imagePath) await removeImage(db, post.image_path);
+  return null;
+}
+
+export async function deletePost(post: Post): Promise<string | null> {
+  const { db, error: authError } = await signedIn();
+  if (!db) return authError;
+  const { error } = await db.from("posts").delete().eq("id", post.id);
+  if (error) return error.message;
+  if (post.image_path) await removeImage(db, post.image_path);
+  return null;
 }
 
 // ---------- Images ----------
 
 export function imageUrl(path: string): string {
-  if (!supabase) return "";
-  return supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+  return supabase?.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl ?? "";
 }
 
 // Shrinks photos to at most 1600px on the long side and re-encodes them as WebP,
@@ -115,11 +185,8 @@ async function resizeImage(file: File): Promise<Blob> {
 }
 
 // Uploads into the user's own folder (<user id>/<random>.webp), which the storage policies require
-export async function uploadPostImage(file: File): Promise<{ path: string | null; error: string | null }> {
-  if (!supabase) return { path: null, error: "Supabase isn't configured yet." };
-  const authError = await ensureSession();
-  if (authError) return { path: null, error: authError };
-  const { data } = await supabase.auth.getUser();
+async function uploadPostImage(db: SupabaseClient, file: File): Promise<{ path: string | null; error: string | null }> {
+  const { data } = await db.auth.getUser();
   if (!data.user) return { path: null, error: "You need to be signed in to upload images." };
 
   let blob: Blob;
@@ -130,97 +197,27 @@ export async function uploadPostImage(file: File): Promise<{ path: string | null
   }
   const ext = blob.type === "image/gif" ? "gif" : "webp";
   const path = `${data.user.id}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage
+  const { error } = await db.storage
     .from(IMAGE_BUCKET)
     .upload(path, blob, { contentType: blob.type, cacheControl: "31536000" });
   return error ? { path: null, error: error.message } : { path, error: null };
 }
 
-async function removeImage(path: string) {
-  await supabase?.storage.from(IMAGE_BUCKET).remove([path]);
-}
-
-// Signs the visitor in anonymously the first time they need an account.
-// The session lives in this browser, so "your posts" = posts made from this browser.
-// Returns an error message, or null on success.
-export async function ensureSession(): Promise<string | null> {
-  if (!supabase) return "Supabase isn't configured yet. See the README.";
-  const { data } = await supabase.auth.getSession();
-  if (data.session) return null;
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    return error.message.toLowerCase().includes("anonymous")
-      ? "Anonymous sign-ins are disabled. Turn them on in Supabase → Authentication → Sign In / Providers."
-      : error.message;
-  }
-  return null;
-}
-
-export async function fetchMyPosts(): Promise<{ posts: Post[]; error: string | null }> {
-  if (!supabase) return { posts: [], error: "Supabase isn't configured yet. See the README." };
-  const authError = await ensureSession();
-  if (authError) return { posts: [], error: authError };
-  const { data, error } = await supabase.rpc("my_posts");
-  return { posts: (data as Post[]) ?? [], error: error?.message ?? null };
-}
-
-// image: undefined = keep current, null = remove, File = replace
-export async function updatePost(
-  post: Post,
-  changes: { title: string; body: string; category: string; image?: File | null }
-): Promise<string | null> {
-  if (!supabase) return "Supabase isn't configured yet.";
-  const { image, ...fields } = changes;
-
-  let imagePath = post.image_path;
-  if (image !== undefined) {
-    imagePath = null;
-    if (image) {
-      const up = await uploadPostImage(image);
-      if (up.error) return up.error;
-      imagePath = up.path;
-    }
-  }
-
-  const { error } = await supabase
-    .from("posts")
-    .update({ ...fields, image_path: imagePath })
-    .eq("id", post.id);
-  if (error) {
-    if (imagePath && imagePath !== post.image_path) await removeImage(imagePath);
-    return error.message;
-  }
-  if (post.image_path && post.image_path !== imagePath) await removeImage(post.image_path);
-  return null;
-}
-
-export async function deletePost(post: Post): Promise<string | null> {
-  if (!supabase) return "Supabase isn't configured yet.";
-  const { error } = await supabase.from("posts").delete().eq("id", post.id);
-  if (error) return error.message;
-  if (post.image_path) await removeImage(post.image_path);
-  return null;
+async function removeImage(db: SupabaseClient, path: string) {
+  await db.storage.from(IMAGE_BUCKET).remove([path]);
 }
 
 // ---------- Saves ----------
 
-export async function fetchSavedPosts(): Promise<{ posts: Post[]; error: string | null }> {
-  if (!supabase) return { posts: [], error: "Supabase isn't configured yet. See the README." };
-  const authError = await ensureSession();
-  if (authError) return { posts: [], error: authError };
-  const { data, error } = await supabase.rpc("saved_posts");
-  return { posts: (data as Post[]) ?? [], error: error?.message ?? null };
-}
+export const fetchSavedPosts = () => fetchList("saved_posts");
 
-// Saves or unsaves a post for the current visitor. Returns an error message, or null.
+// Saves or unsaves a post for the current visitor
 export async function setSaved(postId: string, saved: boolean): Promise<string | null> {
-  if (!supabase) return "Supabase isn't configured yet.";
-  const authError = await ensureSession();
-  if (authError) return authError;
+  const { db, error: authError } = await signedIn();
+  if (!db) return authError;
   const { error } = saved
-    ? await supabase.from("post_saves").insert({ post_id: postId })
-    : await supabase.from("post_saves").delete().eq("post_id", postId);
-  // Saving something already saved is fine (e.g. two tabs open)
-  if (error && error.code === "23505") return null;
-  return error ? error.message : null;
+    ? await db.from("post_saves").insert({ post_id: postId })
+    : await db.from("post_saves").delete().eq("post_id", postId);
+  if (error?.code === "23505") return null; // already saved (e.g. two tabs open) — that's fine
+  return error?.message ?? null;
 }

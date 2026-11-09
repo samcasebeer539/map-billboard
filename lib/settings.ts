@@ -28,6 +28,11 @@ var A=${JSON.stringify(ACCENTS)},a=A[localStorage.getItem("${STORAGE_KEYS.accent
 d.style.setProperty("--accent-light",a.light);d.style.setProperty("--accent-dark",a.dark);
 }catch(e){}})();`;
 
+// Theme currently applied to <html> (set before first paint by themeInitScript)
+export function appliedTheme(): Theme {
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
 export function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
 }

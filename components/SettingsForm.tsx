@@ -35,7 +35,7 @@ export default function SettingsForm() {
       {/* Accent color */}
       <div className="p-4">
         <div className="text-sm font-medium">Accent color</div>
-        <div className="mt-4 flex flex-wrap gap-3" role="radiogroup" aria-label="Accent color">
+        <div className="mt-3 flex flex-wrap gap-3" role="radiogroup" aria-label="Accent color">
           {(Object.keys(ACCENTS) as Accent[]).map((name) => (
             <button
               key={name}
