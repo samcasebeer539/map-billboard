@@ -5,6 +5,13 @@ import Select from "./Select";
 import ImagePicker from "./ImagePicker";
 import { CATEGORIES, createPost } from "@/lib/supabase";
 
+// e.g. 38.58160° N, 121.49440° W (5 decimals ≈ 1 m precision)
+function formatCoords({ lat, lng }: { lat: number; lng: number }) {
+  const ns = lat >= 0 ? "N" : "S";
+  const ew = lng >= 0 ? "E" : "W";
+  return `${Math.abs(lat).toFixed(5)}° ${ns}, ${Math.abs(lng).toFixed(5)}° ${ew}`;
+}
+
 type Props = {
   location: { lat: number; lng: number };
   onCancel: () => void;
@@ -37,7 +44,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
     >
       <header className="border-b border-line p-4">
         <h2 className="text-lg font-semibold">New post</h2>
-        <p className="text-xs text-muted">Pinned where you clicked on the map.</p>
+        <p className="text-xs tabular-nums text-muted">{formatCoords(location)}</p>
       </header>
 
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
