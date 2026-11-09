@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import maplibregl, { GeoJSONSource, Map as MlMap, Marker } from "maplibre-gl";
+import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, Popup } from "maplibre-gl";
 import { fetchPostsInView, Post, supabase } from "@/lib/supabase";
 import PostForm from "./PostForm";
 
@@ -65,15 +65,15 @@ export default function BillboardMap() {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const map = new maplibregl.Map({
+    const map = new MlMap({
       container: containerRef.current,
       style: STYLE_URL,
       center: START,
       zoom: 12,
     });
     mapRef.current = map;
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false }), "top-right");
+    map.addControl(new NavigationControl(), "top-right");
+    map.addControl(new GeolocateControl({ trackUserLocation: false }), "top-right");
 
     map.on("load", () => {
       map.addSource("posts", { type: "geojson", data: toGeoJSON([]) });
@@ -92,7 +92,7 @@ export default function BillboardMap() {
       map.on("click", "posts", (e) => {
         const f = e.features?.[0];
         if (!f || f.geometry.type !== "Point") return;
-        new maplibregl.Popup({ offset: 12 })
+        new Popup({ offset: 12 })
           .setLngLat(f.geometry.coordinates as [number, number])
           .setDOMContent(popupContent(f.properties as Record<string, string>))
           .addTo(map);
@@ -123,7 +123,7 @@ export default function BillboardMap() {
     if (!map) return;
     draftMarkerRef.current?.remove();
     draftMarkerRef.current = draft
-      ? new maplibregl.Marker({ color: "#1c7ed6" }).setLngLat([draft.lng, draft.lat]).addTo(map)
+      ? new Marker({ color: "#1c7ed6" }).setLngLat([draft.lng, draft.lat]).addTo(map)
       : null;
   }, [draft]);
 
