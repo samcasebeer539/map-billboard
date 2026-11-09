@@ -79,9 +79,9 @@ function cardElement(p: Post): HTMLElement {
 // At this zoom and closer, posts show as full cards instead of dots
 const CARD_ZOOM = 14;
 
-// Below this zoom, nearby posts are grouped into numbered clusters.
-// Kept under CARD_ZOOM so clusters have always split apart by the time cards appear.
-const CLUSTER_MAX_ZOOM = 14;
+// Up to this zoom, nearby posts are grouped into numbered clusters.
+// Always one level below CARD_ZOOM, so there's a dots-only zoom level in between.
+const CLUSTER_MAX_ZOOM = CARD_ZOOM - 1;
 const POST_LAYERS = ["post-clusters", "post-cluster-count", "posts"];
 
 // Pin colors come from the same CSS tokens as the rest of the UI
@@ -150,6 +150,7 @@ export default function BillboardMap() {
   const styleThemeRef = useRef<Theme | null>(null);
   const postsRef = useRef<Post[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
+  const popupRef = useRef<Popup | null>(null); // the open dot popup, if any
   const cardsRef = useRef(new Map<string, Marker>()); // key: id + content, so edits re-render
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const { theme, accent, ready } = useSettings();
@@ -161,6 +162,12 @@ export default function BillboardMap() {
     const showCards = map.getZoom() >= CARD_ZOOM;
     for (const id of POST_LAYERS) {
       if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", showCards ? "none" : "visible");
+    }
+
+    // Cards replace popups, so close any open one to avoid showing the post twice
+    if (showCards) {
+      popupRef.current?.remove();
+      popupRef.current = null;
     }
 
     const cards = cardsRef.current;
@@ -236,7 +243,8 @@ export default function BillboardMap() {
     map.on("click", "posts", (e) => {
       const f = e.features?.[0];
       if (!f || f.geometry.type !== "Point") return;
-      new Popup({ offset: 12 })
+      popupRef.current?.remove();
+      popupRef.current = new Popup({ offset: 12 })
         .setLngLat(f.geometry.coordinates as [number, number])
         .setDOMContent(postContent(f.properties as Post, { closeButton: true }))
         .addTo(map);
