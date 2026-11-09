@@ -38,26 +38,48 @@ function toGeoJSON(posts: Post[]): GeoJSON.FeatureCollection {
   };
 }
 
-// Built with DOM nodes + textContent so user-submitted text can't inject HTML
-function popupContent(props: Record<string, string>): HTMLElement {
+// Post content (category, title, body, date) as DOM nodes. Built with textContent
+// so user-submitted text can't inject HTML. Used by both popups and zoomed-in cards.
+function postContent(p: Pick<Post, "category" | "title" | "body" | "created_at">, opts = { closeButton: false }): HTMLElement {
   const el = document.createElement("div");
   const cat = document.createElement("div");
   cat.className = "text-xs font-medium uppercase tracking-wide text-accent";
-  cat.textContent = props.category;
+  cat.textContent = p.category;
   const title = document.createElement("div");
-  title.className = "mt-1 pr-4 text-sm font-semibold";
-  title.textContent = props.title;
+  title.className = `mt-1 text-sm font-semibold ${opts.closeButton ? "pr-4" : ""}`;
+  title.textContent = p.title;
   const body = document.createElement("p");
-  body.className = "mt-1 whitespace-pre-wrap text-sm text-muted";
-  body.textContent = props.body;
+  body.className = "mt-1 whitespace-pre-wrap break-words text-sm text-muted";
+  body.textContent = p.body;
   const date = document.createElement("div");
   date.className = "mt-2 text-xs text-muted";
-  date.textContent = new Date(props.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  date.textContent = new Date(p.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   el.append(cat, title);
-  if (props.body) el.append(body);
+  if (p.body) el.append(body);
   el.append(date);
   return el;
 }
+
+// Zoomed-in view: a card on a short stem, ending in a dot at the post's location
+function cardElement(p: Post): HTMLElement {
+  const wrap = document.createElement("div");
+  wrap.className = "post-card flex flex-col items-center";
+  const card = document.createElement("div");
+  card.className = "floating w-60 rounded-xl p-3";
+  card.append(postContent(p));
+  const stem = document.createElement("div");
+  stem.className = "h-3 w-0.5 bg-line";
+  const dot = document.createElement("div");
+  dot.className = "size-3 rounded-full border-2 border-surface bg-accent";
+  wrap.append(card, stem, dot);
+  // Bring the hovered card above its neighbours
+  wrap.addEventListener("mouseenter", () => (wrap.style.zIndex = "1"));
+  wrap.addEventListener("mouseleave", () => (wrap.style.zIndex = ""));
+  return wrap;
+}
+
+// At this zoom and closer, posts show as full cards instead of dots
+const CARD_ZOOM = 15;
 
 // Theme as currently applied to <html> (set before paint by the head script)
 function currentTheme(): Theme {
@@ -75,8 +97,38 @@ export default function BillboardMap() {
   const styleThemeRef = useRef<Theme | null>(null);
   const postsRef = useRef<Post[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
+  const cardsRef = useRef(new Map<string, Marker>()); // key: id + content, so edits re-render
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const { theme, accent, ready } = useSettings();
+
+  // Show cards when zoomed in, dots when zoomed out
+  const syncCards = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const showCards = map.getZoom() >= CARD_ZOOM;
+    if (map.getLayer("posts")) map.setLayoutProperty("posts", "visibility", showCards ? "none" : "visible");
+
+    const cards = cardsRef.current;
+    if (!showCards) {
+      cards.forEach((m) => m.remove());
+      cards.clear();
+      return;
+    }
+    const wanted = new Map(postsRef.current.map((p) => [`${p.id}|${p.category}|${p.title}|${p.body}`, p]));
+    for (const [key, marker] of cards) {
+      if (!wanted.has(key)) {
+        marker.remove();
+        cards.delete(key);
+      }
+    }
+    for (const [key, p] of wanted) {
+      if (cards.has(key)) continue;
+      const marker = new Marker({ element: cardElement(p), anchor: "bottom", offset: [0, 6] })
+        .setLngLat([p.lng, p.lat])
+        .addTo(map);
+      cards.set(key, marker);
+    }
+  }, []);
 
   const loadPosts = useCallback(async () => {
     const map = mapRef.current;
@@ -90,7 +142,8 @@ export default function BillboardMap() {
     });
     postsRef.current = posts;
     (map.getSource("posts") as GeoJSONSource | undefined)?.setData(toGeoJSON(posts));
-  }, []);
+    syncCards();
+  }, [syncCards]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -131,16 +184,18 @@ export default function BillboardMap() {
           "circle-stroke-color": pin.stroke,
         },
       });
+      syncCards();
     });
 
     map.on("load", loadPosts);
+    map.on("zoom", syncCards);
 
     map.on("click", "posts", (e) => {
       const f = e.features?.[0];
       if (!f || f.geometry.type !== "Point") return;
       new Popup({ offset: 12 })
         .setLngLat(f.geometry.coordinates as [number, number])
-        .setDOMContent(popupContent(f.properties as Record<string, string>))
+        .setDOMContent(postContent(f.properties as Post, { closeButton: true }))
         .addTo(map);
     });
     map.on("mouseenter", "posts", () => (map.getCanvas().style.cursor = "pointer"));
@@ -148,6 +203,7 @@ export default function BillboardMap() {
 
     // Clicking empty map drops a draft pin and opens the form
     map.on("click", (e) => {
+      if ((e.originalEvent.target as HTMLElement).closest(".post-card")) return; // clicked a card
       if (!map.getLayer("posts")) return;
       const hit = map.queryRenderedFeatures(e.point, { layers: ["posts"] });
       if (hit.length) return;
@@ -157,8 +213,12 @@ export default function BillboardMap() {
     // Refetch whenever the view changes
     map.on("moveend", loadPosts);
 
-    return () => map.remove();
-  }, [loadPosts]);
+    const cards = cardsRef.current;
+    return () => {
+      cards.clear();
+      map.remove();
+    };
+  }, [loadPosts, syncCards]);
 
   // Swap the basemap when the theme changes
   useEffect(() => {
