@@ -32,6 +32,24 @@ setWorkerUrl("/maplibre-gl-worker.mjs");
 // One map marker per open card. Each marker holds its own React root rendering <PostCard>.
 type CardEntry = { marker: Marker; root: Root; post: Post; render: () => void };
 
+const HOVER_Z = 10_000; // above any stacking value below
+
+// Overlapping cards: the one whose post sits lower on screen is in front (like objects
+// nearer the viewer). Uses screen position, so it stays right if the map is rotated.
+// Equal heights fall back to newest in front.
+function stackCards(map: MlMap, cards: Map<string, CardEntry>) {
+  const ordered = [...cards.values()].sort(
+    (a, b) =>
+      map.project([a.post.lng, a.post.lat]).y - map.project([b.post.lng, b.post.lat]).y ||
+      a.post.created_at.localeCompare(b.post.created_at)
+  );
+  ordered.forEach((card, i) => {
+    const el = card.marker.getElement();
+    el.dataset.z = String(i + 1);
+    if (el.style.zIndex !== String(HOVER_Z)) el.style.zIndex = el.dataset.z; // don't drop a hovered card
+  });
+}
+
 export default function BillboardMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
@@ -70,12 +88,13 @@ export default function BillboardMap() {
         cards.set(p.id, createCard(map, p));
       }
     }
+    stackCards(map, cards);
 
     function createCard(map: MlMap, p: Post): CardEntry {
       const el = document.createElement("div");
-      // Bring the hovered card above its neighbours
-      el.addEventListener("mouseenter", () => (el.style.zIndex = "1"));
-      el.addEventListener("mouseleave", () => (el.style.zIndex = ""));
+      // The hovered card jumps above everything, then drops back to its place in the stack
+      el.addEventListener("mouseenter", () => (el.style.zIndex = String(HOVER_Z)));
+      el.addEventListener("mouseleave", () => (el.style.zIndex = el.dataset.z ?? ""));
       const root = createRoot(el);
 
       // Optimistic save toggle: update right away, roll back if the server says no
