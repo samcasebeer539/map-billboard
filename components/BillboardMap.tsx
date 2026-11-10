@@ -240,7 +240,9 @@ export default function BillboardMap() {
 
   return (
     <>
-      <div ref={containerRef} className="h-full w-full" />
+      {/* isolate: card z-indexes (up to HOVER_Z) only compete inside the map,
+          so they can never cover the menu, post form or photo viewer */}
+      <div ref={containerRef} className="isolate h-full w-full" />
 
       {/* Menu button: top-left; slides beside the post form (sm+) or hides behind it on phones.
           left-99 = the form's 380px width + 16px gap */}
