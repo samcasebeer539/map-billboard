@@ -38,7 +38,7 @@ export default function PostCard({ post, onClose, onExpand, onToggleSave }: Prop
           </button>
         )}
 
-        <div className="pr-6 text-xs text-accent capitalize">{post.category}</div>
+        <div className="pr-6 text-xs text-accent uppercase tracking-wide">{post.category}</div>
         <div className="mt-1 text-sm font-medium">{post.title}</div>
         {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
 
