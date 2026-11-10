@@ -53,7 +53,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
           <button type="button" onClick={onCancel} className="btn-ghost">
             Cancel
           </button>
-          <button type="submit" disabled={saving} className="btn-primary">
+          <button type="submit" disabled={saving || !title.trim()} className="btn-primary">
             {saving ? (image ? "Uploading…" : "Posting…") : "Post"}
           </button>
         </div>

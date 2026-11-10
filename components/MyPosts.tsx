@@ -188,7 +188,7 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
         <button onClick={onCancel} className="btn-ghost">
           Cancel
         </button>
-        <button onClick={save} disabled={busy} className="btn-primary">
+        <button onClick={save} disabled={busy || !title.trim()} className="btn-primary">
           {busy ? "Saving…" : "Save"}
         </button>
       </div>

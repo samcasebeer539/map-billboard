@@ -95,9 +95,14 @@ export default function CommentsPanel({
             <span className="text-xs text-muted">
               {draft.length}/{COMMENT_MAX}
             </span>
-            <button type="submit" disabled={busy || !draft.trim()} className="btn-primary">
-              {busy ? "Sending…" : "Comment"}
-            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={onClose} className="btn-ghost">
+                Cancel
+              </button>
+              <button type="submit" disabled={busy || !draft.trim()} className="btn-primary">
+                {busy ? "Sending…" : "Comment"}
+              </button>
+            </div>
           </div>
         </form>
       }
