@@ -120,7 +120,7 @@ export default function Select({ id, value, options, onChange, capitalize = true
       </button>
 
       {open && (
-        <ul id={listId} role="listbox" className="floating absolute inset-x-0 top-full z-30 mt-1 rounded-xl p-1">
+        <ul id={listId} role="listbox" className="floating absolute inset-x-0 top-full z-30 mt-1 rounded-lg p-1">
           {options.map((o, i) => (
             <li
               key={o}
@@ -130,7 +130,7 @@ export default function Select({ id, value, options, onChange, capitalize = true
               onMouseEnter={() => setActive(i)}
               onMouseDown={(e) => e.preventDefault()} // keep focus on the button
               onClick={() => choose(i)}
-              className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${cap} ${
+              className={`flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm ${cap} ${
                 i === active ? "bg-surface-2" : ""
               } ${o === value ? "font-medium text-accent" : "text-fg"}`}
             >

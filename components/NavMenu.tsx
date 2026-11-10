@@ -49,14 +49,14 @@ export default function NavMenu() {
       </button>
 
       {open && (
-        <nav className="floating absolute left-0 top-12 w-44 rounded-xl p-1">
+        <nav className="floating absolute left-0 top-12 w-44 rounded-lg p-1">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
               aria-current={pathname === l.href ? "page" : undefined}
-              className={`block rounded-lg px-3 py-2 text-sm hover:bg-surface-2 ${
+              className={`block rounded-md px-3 py-2 text-sm hover:bg-surface-2 ${
                 pathname === l.href ? "bg-surface-2 font-medium text-accent" : "text-fg"
               }`}
             >

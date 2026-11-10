@@ -35,7 +35,7 @@ export default function Lightbox({ image, onClose }: { image: LightboxImage | nu
         src={image.src}
         alt={image.alt}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
+        className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
       />
       <button
         ref={closeRef}

@@ -51,11 +51,11 @@
 
 /* ------------------------------------------------------------------
    Type scale: text-xs (meta), text-sm (body + UI), text-lg (titles).
-   Radius: rounded-lg (controls), rounded-xl (cards/panels),
-   rounded-md for small buttons nested inside another rounded element.
+   Radius: rounded-lg (8px) for cards, panels and controls;
+   rounded-md (6px) for items nested inside them (menu items, tabs, card buttons).
    ------------------------------------------------------------------ */
 @utility card {
-  @apply rounded-xl border border-line bg-surface;
+  @apply rounded-lg border border-line bg-surface;
 }
 @utility floating {
   @apply border border-line bg-surface shadow-lg shadow-black/10 dark:shadow-black/40;

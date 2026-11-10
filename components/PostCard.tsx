@@ -24,14 +24,14 @@ export default function PostCard({ post, onClose, onExpand, onToggleSave }: Prop
 
   return (
     <div className="post-card flex flex-col items-center">
-      <div className="floating relative w-60 rounded-xl p-3">
+      <div className="floating relative w-60 rounded-lg p-3">
         {src && (
           // Photo at its natural aspect ratio (very tall photos are capped); click to expand
           <button
             type="button"
             aria-label="Expand photo"
             onClick={stop(() => onExpand(src, post.title))}
-            className="-mx-3 -mt-3 mb-3 block w-[calc(100%+1.5rem)] cursor-zoom-in overflow-hidden rounded-t-xl border-b border-line bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+            className="-mx-3 -mt-3 mb-3 block w-[calc(100%+1.5rem)] cursor-zoom-in overflow-hidden rounded-t-lg border-b border-line bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt={post.title} loading="lazy" className="block h-auto max-h-80 w-full object-cover" />
