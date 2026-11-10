@@ -43,7 +43,7 @@ export default function PostCard({ post, onExpand, onToggleSave }: Props) {
 
         <div className="mt-2 flex items-center justify-between">
           <span className="text-xs text-muted">{date}</span>
-          <SaveButton count={post.save_count} saved={post.saved} onClick={stop(onToggleSave)} />
+          <SaveButton saved={post.saved} onClick={stop(onToggleSave)} />
         </div>
 
       </div>
@@ -52,19 +52,18 @@ export default function PostCard({ post, onExpand, onToggleSave }: Props) {
   );
 }
 
-function SaveButton({ count, saved, onClick }: { count: number; saved: boolean; onClick: (e: MouseEvent) => void }) {
+function SaveButton({ saved, onClick }: { saved: boolean; onClick: (e: MouseEvent) => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={saved}
-      aria-label={`${saved ? "Unsave" : "Save"} post, ${count} ${count === 1 ? "save" : "saves"}`}
+      aria-label={saved ? "Unsave post" : "Save post"}
       title={saved ? "Saved" : "Save"}
-      className={`-mr-1.5 flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs tabular-nums hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
+      className={`-mr-1.5 flex size-7 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
         saved ? "text-accent" : "text-muted"
       }`}
     >
-      <span>{count}</span>
       <svg width="16" height="16" viewBox="0 0 16 16" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
         <path d="M4 2.5h8a.5.5 0 0 1 .5.5v10.6a.3.3 0 0 1-.48.24L8 10.9l-4.02 2.94a.3.3 0 0 1-.48-.24V3a.5.5 0 0 1 .5-.5z" />
       </svg>

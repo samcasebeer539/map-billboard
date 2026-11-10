@@ -67,7 +67,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
           <Select id="post-category" value={category} options={CATEGORIES} onChange={setCategory} />
         </Field>
 
-        <Field id="post-duration" label="Keep it up for">
+        <Field id="post-duration" label="Expires">
           <Select
             id="post-duration"
             value={duration}
