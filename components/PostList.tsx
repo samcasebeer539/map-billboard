@@ -49,7 +49,7 @@ export function PostList({
     <section className="flex flex-col gap-4">
       {posts === null && <p className="text-sm text-muted">Loading…</p>}
       {error && (
-        <p role="alert" className="card border-danger/40 p-4 text-sm text-danger">
+        <p role="alert" className="rounded-lg bg-danger/10 p-4 text-sm text-danger">
           {error}
         </p>
       )}

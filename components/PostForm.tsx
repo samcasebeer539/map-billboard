@@ -43,9 +43,9 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
   return (
     <form
       onSubmit={submit}
-      className="floating absolute inset-y-0 left-0 z-10 flex w-full flex-col border-y-0 border-l-0 max-sm:border-r-0 sm:w-95"
+      className="floating absolute inset-y-0 left-0 z-10 flex w-full flex-col sm:w-95"
     >
-      <header className="border-b border-line p-4">
+      <header className="px-4 pt-4">
         <h2 className="text-lg font-semibold">New post</h2>
         <p className="text-xs tabular-nums text-muted">{formatCoords(location)}</p>
       </header>
@@ -112,7 +112,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
         )}
       </div>
 
-      <footer className="flex justify-end gap-2 border-t border-line p-4">
+      <footer className="flex justify-end gap-2 p-4">
         <button type="button" onClick={onCancel} className="btn-ghost">
           Cancel
         </button>

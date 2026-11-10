@@ -34,7 +34,7 @@ export default function PostSummary({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs text-muted">
             <span className="font-medium uppercase tracking-wide">{post.category}</span>
-            {expired && <span className="rounded-full border border-line px-2 py-0.5">Expired</span>}
+            {expired && <span className="rounded-full bg-surface-2 px-2 py-0.5">Expired</span>}
           </div>
           <h3 className="mt-1 text-sm font-semibold">{post.title}</h3>
           {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
@@ -51,7 +51,7 @@ export default function PostSummary({
               src={imageUrl(post.image_path)}
               alt=""
               loading="lazy"
-              className="size-20 rounded-lg border border-line object-cover"
+              className="size-20 rounded-lg object-cover"
             />
           </button>
         )}
@@ -61,7 +61,7 @@ export default function PostSummary({
         />
       </div>
 
-      <div className="mt-4 flex flex-col items-start gap-2 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-xs text-muted">{meta}</span>
         {/* Negative margin lines the buttons' text up with the content edge (buttons have 12px padding) */}
         <div className="-ml-3 flex gap-1 sm:-mr-3 sm:ml-0">{actions}</div>

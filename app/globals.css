@@ -7,15 +7,16 @@
 /* ------------------------------------------------------------------
    Design tokens. Every color in the app comes from this list.
    All text/background pairs meet WCAG AA (4.5:1) in both themes.
+   Surfaces are separated by fill contrast, shadow and spacing, not borders.
    ------------------------------------------------------------------ */
 :root {
-  --accent-light: #c2410c;
+  --accent-light: #b83c0a;
   --accent-dark: #fb923c;
 
-  --bg: #f5f6f8;        /* page background */
+  --bg: #eceef2;        /* page background */
   --surface: #ffffff;   /* cards, panels, menus */
-  --surface-2: #eef0f3; /* inputs, hover states */
-  --line: #dfe2e7;      /* borders, dividers */
+  --surface-2: #eef0f3; /* inputs, hover states, quiet fills */
+  --line: #d5d9e0;      /* switch track and other rare strokes */
   --fg: #14171c;        /* main text */
   --muted: #5c6470;     /* secondary text */
   --danger: #c92a2a;
@@ -28,7 +29,7 @@
   --bg: #0d0f13;
   --surface: #171a20;
   --surface-2: #232730;
-  --line: #2e333d;
+  --line: #3a404c;
   --fg: #eceef2;
   --muted: #9ea6b3;
   --danger: #ff8787;
@@ -55,17 +56,18 @@
    rounded-md (6px) for items nested inside them (menu items, tabs, card buttons).
    ------------------------------------------------------------------ */
 @utility card {
-  @apply rounded-lg border border-line bg-surface;
+  @apply rounded-lg bg-surface;
 }
+/* Anything layered over the map or page: menus, dropdowns, map cards */
 @utility floating {
-  @apply border border-line bg-surface shadow-lg shadow-black/10 dark:shadow-black/40;
+  @apply bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_20px_rgb(0_0_0/0.12)] dark:shadow-[0_1px_2px_rgb(0_0_0/0.4),0_8px_24px_rgb(0_0_0/0.5)];
 }
 @utility field-label {
   @apply mb-1.5 block text-xs font-medium text-muted;
 }
 @utility input {
-  @apply w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-fg placeholder:text-muted
-    focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30;
+  @apply w-full rounded-lg bg-surface-2 px-3 py-2 text-sm text-fg placeholder:text-muted
+    focus:outline-none focus:ring-2 focus:ring-accent;
 }
 @utility btn {
   @apply inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors
@@ -92,13 +94,12 @@ body {
 
 .maplibregl-ctrl-group {
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: 0.5rem;
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 6px 20px rgb(0 0 0 / 0.12) !important;
   overflow: hidden;
 }
 .maplibregl-ctrl-group button + button {
-  border-top-color: var(--line);
+  border-top: 0;
 }
 .maplibregl-ctrl-group button:not(:disabled):hover {
   background: var(--surface-2);
@@ -118,21 +119,18 @@ body {
 }
 .maplibregl-ctrl-attrib.maplibregl-compact {
   background: var(--surface);
-  border: 1px solid var(--line);
 }
 .dark .maplibregl-ctrl-attrib-button {
   filter: invert(1);
 }
 
-/* Triangle under zoomed-in post cards (a rotated square that overlaps the card's bottom border) */
+/* Triangle under map post cards (a rotated square tucked under the card's bottom edge) */
 .card-tip {
   position: relative;
   width: 12px;
   height: 12px;
   margin-top: -7px;
   background: var(--surface);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
   transform: rotate(45deg);
 }
 

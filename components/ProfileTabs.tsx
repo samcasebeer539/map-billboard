@@ -32,7 +32,7 @@ export default function ProfileTabs() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="tablist" aria-label="Profile posts" onKeyDown={onKeyDown} className="inline-flex self-start rounded-lg border border-line bg-surface p-1">
+      <div role="tablist" aria-label="Profile posts" onKeyDown={onKeyDown} className="flex gap-1 self-start">
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
@@ -48,8 +48,8 @@ export default function ProfileTabs() {
               aria-controls={`panel-${t.id}`}
               tabIndex={active ? 0 : -1}
               onClick={() => setTab(t.id)}
-              className={`flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
-                active ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"
+              className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+                active ? "bg-surface text-fg" : "text-muted hover:text-fg"
               }`}
             >
               {t.label}

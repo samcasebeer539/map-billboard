@@ -31,7 +31,7 @@ export default function PostCard({ post, onClose, onExpand, onToggleSave }: Prop
             type="button"
             aria-label="Expand photo"
             onClick={stop(() => onExpand(src, post.title))}
-            className="-mx-3 -mt-3 mb-3 block w-[calc(100%+1.5rem)] cursor-zoom-in overflow-hidden rounded-t-lg border-b border-line bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+            className="-mx-3 -mt-3 mb-3 block w-[calc(100%+1.5rem)] cursor-zoom-in overflow-hidden rounded-t-lg bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt={post.title} loading="lazy" className="block h-auto max-h-80 w-full object-cover" />

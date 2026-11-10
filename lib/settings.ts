@@ -3,13 +3,13 @@ export type Theme = "light" | "dark";
 // Each accent has a darker shade for light mode and a lighter one for dark mode,
 // so text and buttons stay above WCAG AA contrast (4.5:1) in both themes.
 export const ACCENTS = {
-  orange: { light: "#c2410c", dark: "#fb923c" },
+  orange: { light: "#b83c0a", dark: "#fb923c" },
   red: { light: "#b91c1c", dark: "#f87171" },
   pink: { light: "#be185d", dark: "#f472b6" },
   purple: { light: "#6d28d9", dark: "#a78bfa" },
   blue: { light: "#1d4ed8", dark: "#60a5fa" },
   teal: { light: "#0f766e", dark: "#2dd4bf" },
-  green: { light: "#15803d", dark: "#4ade80" },
+  green: { light: "#137a3a", dark: "#4ade80" },
 } as const;
 
 export type Accent = keyof typeof ACCENTS;

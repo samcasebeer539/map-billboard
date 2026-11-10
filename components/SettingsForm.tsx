@@ -8,7 +8,7 @@ export default function SettingsForm() {
   const dark = theme === "dark";
 
   return (
-    <div className="card divide-y divide-line">
+    <div className="card">
       {/* Light / dark */}
       <div className="flex items-center justify-between gap-4 p-4">
         <div>
@@ -20,13 +20,13 @@ export default function SettingsForm() {
           aria-checked={dark}
           aria-label="Dark mode"
           onClick={() => setTheme(dark ? "light" : "dark")}
-          className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-            dark ? "border-accent bg-accent" : "border-line bg-surface-2"
+          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+            dark ? "bg-accent" : "bg-line"
           }`}
         >
           <span
-            className={`absolute top-0.5 left-0.5 size-4.5 rounded-full shadow transition-transform ${
-              dark ? "translate-x-5 bg-on-accent" : "bg-muted"
+            className={`absolute top-1 left-1 size-4 rounded-full shadow transition-transform ${
+              dark ? "translate-x-5 bg-on-accent" : "bg-surface"
             }`}
           />
         </button>
