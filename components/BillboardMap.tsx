@@ -32,6 +32,35 @@ setWorkerUrl("/maplibre-gl-worker.mjs");
 // One map marker per open card. Each marker holds its own React root rendering <PostCard>.
 type CardEntry = { marker: Marker; root: Root; post: Post; render: () => void };
 
+// How close (px) a click must be to a dot or group to count as clicking it.
+// Bigger on touch screens, where a fingertip covers far more than an 8px dot.
+const HIT_RADIUS = { mouse: 12, touch: 22 };
+
+// The dot or group closest to a screen point, within HIT_RADIUS (groups get extra room for their size)
+function nearestPostFeature(map: MlMap, point: { x: number; y: number }) {
+  const r = window.matchMedia("(pointer: coarse)").matches ? HIT_RADIUS.touch : HIT_RADIUS.mouse;
+  const hits = map.queryRenderedFeatures(
+    [
+      [point.x - r - 10, point.y - r - 10],
+      [point.x + r + 10, point.y + r + 10],
+    ],
+    { layers: [CLUSTER_LAYER, DOT_LAYER] }
+  );
+  let best: (typeof hits)[number] | null = null;
+  let bestDist = Infinity;
+  for (const f of hits) {
+    if (f.geometry.type !== "Point") continue;
+    const p = map.project(f.geometry.coordinates as [number, number]);
+    const d = Math.hypot(p.x - point.x, p.y - point.y);
+    const reach = r + (f.layer.id === CLUSTER_LAYER ? 10 : 0);
+    if (d <= reach && d < bestDist) {
+      best = f;
+      bestDist = d;
+    }
+  }
+  return best;
+}
+
 const HOVER_Z = 10_000; // above any stacking value below
 
 // Overlapping cards: the one whose post sits lower on screen is in front (like objects
@@ -158,6 +187,7 @@ export default function BillboardMap() {
       style: STYLE_URLS[styleThemeRef.current],
       center: focus ? [lng, lat] : START,
       zoom: focus ? FOCUS_ZOOM : START_ZOOM,
+      clickTolerance: 6, // px of movement still treated as a click/tap, not a drag (default 3)
     });
     mapRef.current = map;
     map.addControl(new NavigationControl(), "top-right");
@@ -175,36 +205,35 @@ export default function BillboardMap() {
     map.on("moveend", loadPosts);
     map.on("zoom", syncCards);
 
-    // Clicking a dot zooms in on it until the cards appear
-    map.on("click", DOT_LAYER, (e) => {
-      const f = e.features?.[0];
-      if (!f || f.geometry.type !== "Point") return;
-      map.easeTo({ center: f.geometry.coordinates as [number, number], zoom: Math.max(map.getZoom(), CARD_ZOOM) });
+    // Pointer cursor near dots and groups, using the same forgiving radius as clicks
+    map.on("mousemove", (e) => {
+      map.getCanvas().style.cursor = nearestPostFeature(map, e.point) ? "pointer" : "";
     });
 
-    // Clicking a group zooms in far enough to split it apart
-    map.on("click", CLUSTER_LAYER, async (e) => {
-      const f = e.features?.[0];
-      if (!f || f.geometry.type !== "Point") return;
-      try {
-        const zoom = await (map.getSource(SOURCE) as GeoJSONSource).getClusterExpansionZoom(f.properties.cluster_id);
-        map.easeTo({ center: f.geometry.coordinates as [number, number], zoom });
-      } catch (err) {
-        console.error("Couldn't expand group:", err);
-      }
-    });
-
-    for (const layer of [DOT_LAYER, CLUSTER_LAYER]) {
-      map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
-      map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
-    }
-
-    // Clicking empty map drops a draft pin and opens the post form
-    map.on("click", (e) => {
+    // One click handler for the whole map:
+    //  - near a group: zoom in until it splits
+    //  - near a dot: zoom in until its card appears
+    //  - otherwise: drop a draft pin and open the post form
+    map.on("click", async (e) => {
       if ((e.originalEvent.target as HTMLElement).closest(".post-card")) return;
-      if (!map.getLayer(DOT_LAYER)) return;
-      if (map.queryRenderedFeatures(e.point, { layers: [DOT_LAYER, CLUSTER_LAYER] }).length) return;
-      setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      if (!map.getLayer(DOT_LAYER)) return; // layers not ready yet
+
+      const f = nearestPostFeature(map, e.point);
+      if (!f) {
+        setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        return;
+      }
+      const center = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+      if (f.layer.id === CLUSTER_LAYER) {
+        try {
+          const zoom = await (map.getSource(SOURCE) as GeoJSONSource).getClusterExpansionZoom(f.properties.cluster_id);
+          map.easeTo({ center, zoom });
+        } catch (err) {
+          console.error("Couldn't expand group:", err);
+        }
+      } else {
+        map.easeTo({ center, zoom: Math.max(map.getZoom(), CARD_ZOOM) });
+      }
     });
 
     const cards = cardsRef.current;

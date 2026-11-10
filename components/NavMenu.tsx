@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 // 20×20 line icons, drawn in the current text color
 const icon = (paths: ReactNode) => (
@@ -46,31 +46,27 @@ const LINKS = [
 export default function NavMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const ref = useRef<HTMLDivElement>(null);
 
-  // Close when clicking outside or pressing Escape
+  // Close on Escape (clicks outside are caught by the backdrop below)
   useEffect(() => {
     if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
+      {/* Invisible backdrop while open: a click outside the menu just closes it,
+          instead of also reaching the map and dropping a pin */}
+      {open && <div className="fixed inset-0" onClick={() => setOpen(false)} aria-hidden />}
+
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Menu"
         aria-expanded={open}
-        className="floating flex size-10 items-center justify-center rounded-lg text-fg hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="floating relative flex size-10 items-center justify-center rounded-lg text-fg hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           {open ? <path d="M5 5l10 10M15 5L5 15" /> : <path d="M3 5h14M3 10h14M3 15h14" />}
