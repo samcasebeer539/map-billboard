@@ -5,15 +5,14 @@ import { imageUrl, Post } from "@/lib/supabase";
 
 type Props = {
   post: Post;
-  onClose: () => void; // minimize back to a dot
   onExpand: (src: string, alt: string) => void; // open the photo viewer
   onToggleSave: () => void;
 };
 
 // The post card shown on the map: optional photo, category, title, details,
-// then the date and save button, with a × to minimize and a triangle pointing at the post.
+// then the date and save button, with a triangle pointing at the post.
 // BillboardMap renders one of these into each map marker.
-export default function PostCard({ post, onClose, onExpand, onToggleSave }: Props) {
+export default function PostCard({ post, onExpand, onToggleSave }: Props) {
   // Clicks inside a card shouldn't reach the map (which would start a new post)
   const stop = (fn: () => void) => (e: MouseEvent) => {
     e.stopPropagation();
@@ -24,7 +23,7 @@ export default function PostCard({ post, onClose, onExpand, onToggleSave }: Prop
 
   return (
     <div className="post-card flex flex-col items-center">
-      <div className="floating relative w-60 rounded-lg p-3">
+      <div className="floating w-60 rounded-lg p-3">
         {src && (
           // Photo at its natural aspect ratio (very tall photos are capped); click to expand
           <button
@@ -38,7 +37,7 @@ export default function PostCard({ post, onClose, onExpand, onToggleSave }: Prop
           </button>
         )}
 
-        <div className="pr-6 text-xs text-accent uppercase tracking-wide">{post.category}</div>
+        <div className="text-xs text-accent uppercase tracking-wide">{post.category}</div>
         <div className="mt-1 text-sm font-medium">{post.title}</div>
         {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
 
@@ -47,16 +46,6 @@ export default function PostCard({ post, onClose, onExpand, onToggleSave }: Prop
           <SaveButton count={post.save_count} saved={post.saved} onClick={stop(onToggleSave)} />
         </div>
 
-        <button
-          type="button"
-          aria-label="Minimize post"
-          onClick={stop(onClose)}
-          className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-md bg-surface text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
-            <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
-          </svg>
-        </button>
       </div>
       <div className="card-tip" />
     </div>

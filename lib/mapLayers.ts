@@ -23,7 +23,7 @@ export const START: [number, number] = [-121.4944, 38.5816];
 export const START_ZOOM = 12;
 export const FOCUS_ZOOM = 16; // used for "View on map" links
 
-// At this zoom and closer, posts open as cards by default (each can be minimized)
+// At this zoom and closer, every post shows as a card; further out they are dots or groups
 export const CARD_ZOOM = 14;
 
 // How far (px) a card's bottom edge sits above its post's location, so the triangle

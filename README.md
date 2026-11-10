@@ -39,8 +39,8 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 **Map**
 - `components/BillboardMap.tsx`: creates the map, loads posts for the current view, and decides which posts show as cards.
 - `lib/mapLayers.ts`: map styles, zoom thresholds (`CARD_ZOOM`, `CARD_LIFT`) and the MapLibre layers for dots and groups.
-- `components/PostCard.tsx`: the card shown on the map (photo, text, date, save button, × to minimize).
-- Zoomed out, nearby posts group into numbered bubbles. From `CARD_ZOOM` in, every post shows as a card. Clicking a dot opens its card at any zoom.
+- `components/PostCard.tsx`: the card shown on the map (photo, text, date, save button).
+- Zoomed out, nearby posts group into numbered bubbles. From `CARD_ZOOM` in, every post shows as a card. Clicking a dot zooms in to it.
 
 **Posting**
 - `components/PostForm.tsx`: the panel that opens when you click the map.

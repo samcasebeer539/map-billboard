@@ -39,9 +39,6 @@ export default function BillboardMap() {
   const postsRef = useRef<Post[]>([]);
   const loadIdRef = useRef(0); // ignores responses from older, slower requests
   const draftMarkerRef = useRef<Marker | null>(null);
-  // Per-post overrides of the zoom default: opened (clicked dot) and minimized (× on a card)
-  const openedRef = useRef(new Set<string>());
-  const minimizedRef = useRef(new Set<string>());
   const cardsRef = useRef(new Map<string, CardEntry>());
 
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
@@ -49,14 +46,11 @@ export default function BillboardMap() {
   const { theme, accent, ready } = useSettings();
   const closeLightbox = useCallback(() => setLightbox(null), []);
 
-  // Show cards for: every post when zoomed in (unless minimized), plus any post opened by clicking its dot
+  // Every post in view shows as a card once zoomed in to CARD_ZOOM; otherwise none do
   const syncCards = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    const zoomedIn = map.getZoom() >= CARD_ZOOM;
-    const open = postsRef.current.filter(
-      (p) => openedRef.current.has(p.id) || (zoomedIn && !minimizedRef.current.has(p.id))
-    );
+    const open = map.getZoom() >= CARD_ZOOM ? postsRef.current : [];
     const openIds = new Set(open.map((p) => p.id));
     const cards = cardsRef.current;
 
@@ -84,12 +78,6 @@ export default function BillboardMap() {
       el.addEventListener("mouseleave", () => (el.style.zIndex = ""));
       const root = createRoot(el);
 
-      const minimize = () => {
-        openedRef.current.delete(p.id);
-        minimizedRef.current.add(p.id);
-        syncCards();
-      };
-
       // Optimistic save toggle: update right away, roll back if the server says no
       const toggleSave = async () => {
         const before = entry.post;
@@ -112,7 +100,6 @@ export default function BillboardMap() {
           root.render(
             <PostCard
               post={entry.post}
-              onClose={minimize}
               onExpand={(src, alt) => setLightbox({ src, alt })}
               onToggleSave={toggleSave}
             />
@@ -169,13 +156,11 @@ export default function BillboardMap() {
     map.on("moveend", loadPosts);
     map.on("zoom", syncCards);
 
-    // Clicking a dot opens its card, which stays open while zooming
+    // Clicking a dot zooms in on it until the cards appear
     map.on("click", DOT_LAYER, (e) => {
-      const id = e.features?.[0]?.properties?.id as string | undefined;
-      if (!id) return;
-      openedRef.current.add(id);
-      minimizedRef.current.delete(id);
-      syncCards();
+      const f = e.features?.[0];
+      if (!f || f.geometry.type !== "Point") return;
+      map.easeTo({ center: f.geometry.coordinates as [number, number], zoom: Math.max(map.getZoom(), CARD_ZOOM) });
     });
 
     // Clicking a group zooms in far enough to split it apart
