@@ -135,3 +135,10 @@ body {
   border-bottom: 1px solid var(--line);
   transform: rotate(45deg);
 }
+
+html {
+  scrollbar-width: none; /* Firefox, and Chrome/Edge 121+ */
+}
+html::-webkit-scrollbar {
+  display: none; /* Safari and older Chrome */
+}
