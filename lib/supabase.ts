@@ -24,13 +24,36 @@ export type Post = {
   lng: number;
   created_at: string;
   expires_at: string;
+  comments_enabled: boolean;
   save_count: number;
+  comment_count: number;
   saved: boolean; // saved by the current visitor
+  mine: boolean; // posted by the current visitor
+  hidden: boolean; // hidden from the map after 3 reports (only shown to the owner)
 };
 
-// Must match the check constraints in supabase/schema.sql
+export type Comment = {
+  id: string;
+  body: string;
+  created_at: string;
+  mine: boolean;
+  by_poster: boolean;
+  can_delete: boolean;
+};
+
+export const REPORT_REASONS = {
+  spam: "Spam or advertising",
+  inappropriate: "Offensive or inappropriate",
+  scam: "Scam or misleading",
+  other: "Something else",
+} as const;
+export type ReportReason = keyof typeof REPORT_REASONS;
+
+// Must match the database (supabase/*.sql)
 export const TITLE_MAX = 80;
 export const BODY_MAX = 500;
+export const COMMENT_MAX = 300;
+export const POST_LIMIT = 10; // active posts per person
 
 export const CATEGORIES = ["general", "event", "lost & found", "for sale", "free", "help wanted"] as const;
 
@@ -100,6 +123,7 @@ export async function createPost(input: {
   lng: number;
   image: File | null;
   duration: Duration;
+  commentsEnabled: boolean;
 }): Promise<string | null> {
   const { db, error: authError } = await signedIn();
   if (!db) return authError;
@@ -119,6 +143,7 @@ export async function createPost(input: {
     p_lng: input.lng,
     p_image_path: imagePath,
     p_duration_days: DURATIONS[input.duration],
+    p_comments_enabled: input.commentsEnabled,
   });
   if (error && imagePath) await removeImage(db, imagePath); // don't leave an orphaned file
   return error?.message ?? null;
@@ -128,11 +153,18 @@ export async function createPost(input: {
 // duration: undefined = keep the current expiry, otherwise expire that long from now
 export async function updatePost(
   post: Post,
-  changes: { title: string; body: string; category: string; image?: File | null; duration?: Duration }
+  changes: {
+    title: string;
+    body: string;
+    category: string;
+    commentsEnabled: boolean;
+    image?: File | null;
+    duration?: Duration;
+  }
 ): Promise<string | null> {
   const { db, error: authError } = await signedIn();
   if (!db) return authError;
-  const { image, duration, ...fields } = changes;
+  const { image, duration, commentsEnabled, ...fields } = changes;
   const expiry = duration ? { expires_at: new Date(Date.now() + DURATIONS[duration] * 86_400_000).toISOString() } : {};
 
   let imagePath = post.image_path;
@@ -145,7 +177,7 @@ export async function updatePost(
     }
   }
 
-  const { error } = await db.from("posts").update({ ...fields, ...expiry, image_path: imagePath }).eq("id", post.id);
+  const { error } = await db.from("posts").update({ ...fields, ...expiry, comments_enabled: commentsEnabled, image_path: imagePath }).eq("id", post.id);
   if (error) {
     if (imagePath && imagePath !== post.image_path) await removeImage(db, imagePath);
     return error.message;
@@ -222,4 +254,46 @@ export async function setSaved(postId: string, saved: boolean): Promise<string |
     : await db.from("post_saves").delete().eq("post_id", postId);
   if (error?.code === "23505") return null; // already saved (e.g. two tabs open) — that's fine
   return error?.message ?? null;
+}
+
+// ---------- Comments ----------
+
+// Readable without an account, so browsing comments doesn't sign anyone in
+export async function fetchComments(postId: string): Promise<{ comments: Comment[]; error: string | null }> {
+  if (!supabase) return { comments: [], error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc("post_comments_for", { p_post_id: postId });
+  return { comments: (data as Comment[]) ?? [], error: error?.message ?? null };
+}
+
+export async function addComment(postId: string, body: string): Promise<string | null> {
+  const { db, error: authError } = await signedIn();
+  if (!db) return authError;
+  const { error } = await db.from("post_comments").insert({ post_id: postId, body });
+  return error?.message ?? null;
+}
+
+export async function deleteComment(commentId: string): Promise<string | null> {
+  const { db, error: authError } = await signedIn();
+  if (!db) return authError;
+  const { data, error } = await db.rpc("delete_comment", { p_comment_id: commentId });
+  if (error) return error.message;
+  return data ? null : "You can't delete that comment.";
+}
+
+// ---------- Reports ----------
+
+export async function reportPost(postId: string, reason: ReportReason): Promise<string | null> {
+  const { db, error: authError } = await signedIn();
+  if (!db) return authError;
+  const { error } = await db.from("post_reports").insert({ post_id: postId, reason });
+  if (error?.code === "23505") return null; // already reported by this person — fine
+  return error?.message ?? null;
+}
+
+// ---------- Sharing ----------
+
+// A link that opens the map zoomed in on this post, with its card highlighted
+export function postLink(post: Pick<Post, "id" | "lat" | "lng">): string {
+  const params = new URLSearchParams({ post: post.id, lat: post.lat.toFixed(6), lng: post.lng.toFixed(6) });
+  return `${window.location.origin}/?${params}`;
 }

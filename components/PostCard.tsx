@@ -1,18 +1,22 @@
 "use client";
 
-import { MouseEvent } from "react";
+import { MouseEvent, ReactNode } from "react";
 import { imageUrl, Post } from "@/lib/supabase";
 
 type Props = {
   post: Post;
+  highlighted?: boolean; // the post a share link pointed to
   onExpand: (src: string, alt: string) => void; // open the photo viewer
   onToggleSave: () => void;
+  onOpenComments: () => void;
+  onShare: () => void;
+  onReport: () => void;
 };
 
 // The post card shown on the map: optional photo, category, title, details,
-// then the date and save button, with a triangle pointing at the post.
+// then the date and action buttons, with a triangle pointing at the post.
 // BillboardMap renders one of these into each map marker.
-export default function PostCard({ post, onExpand, onToggleSave }: Props) {
+export default function PostCard({ post, highlighted, onExpand, onToggleSave, onOpenComments, onShare, onReport }: Props) {
   // Clicks inside a card shouldn't reach the map (which would start a new post)
   const stop = (fn: () => void) => (e: MouseEvent) => {
     e.stopPropagation();
@@ -23,7 +27,7 @@ export default function PostCard({ post, onExpand, onToggleSave }: Props) {
 
   return (
     <div className="post-card flex flex-col items-center">
-      <div className="floating w-60 rounded-lg p-3">
+      <div className={`floating w-60 rounded-lg p-3 ${highlighted ? "ring-2 ring-accent" : ""}`}>
         {src && (
           // Photo at its natural aspect ratio (very tall photos are capped); click to expand
           <button
@@ -43,29 +47,70 @@ export default function PostCard({ post, onExpand, onToggleSave }: Props) {
 
         <div className="mt-2 flex items-center justify-between">
           <span className="text-xs text-muted">{date}</span>
-          <SaveButton saved={post.saved} onClick={stop(onToggleSave)} />
+          <div className="-mr-1.5 flex items-center">
+            {post.comments_enabled && (
+              <IconButton
+                label={`Comments (${post.comment_count})`}
+                onClick={stop(onOpenComments)}
+                count={post.comment_count || undefined}
+              >
+                {/* speech bubble */}
+                <path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5a1.5 1.5 0 0 1-1.5 1.5H7.5L4.5 13.5V11h0A1.5 1.5 0 0 1 3 9.5z" />
+              </IconButton>
+            )}
+            <IconButton label="Share post" onClick={stop(onShare)}>
+              {/* arrow out of a tray */}
+              <path d="M8 2.5v7.5M5 5.5l3-3 3 3M3.5 9.5v2.5a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V9.5" />
+            </IconButton>
+            <IconButton label={post.saved ? "Unsave post" : "Save post"} pressed={post.saved} onClick={stop(onToggleSave)}>
+              {/* bookmark */}
+              <path
+                fill={post.saved ? "currentColor" : "none"}
+                d="M4 2.5h8a.5.5 0 0 1 .5.5v10.6a.3.3 0 0 1-.48.24L8 10.9l-4.02 2.94a.3.3 0 0 1-.48-.24V3a.5.5 0 0 1 .5-.5z"
+              />
+            </IconButton>
+            {!post.mine && (
+              <IconButton label="Report post" onClick={stop(onReport)}>
+                {/* flag */}
+                <path d="M4 13.5V2.5M4 3h7.5l-1.75 2.75L11.5 8.5H4" />
+              </IconButton>
+            )}
+          </div>
         </div>
-
       </div>
       <div className="card-tip" />
     </div>
   );
 }
 
-function SaveButton({ saved, onClick }: { saved: boolean; onClick: (e: MouseEvent) => void }) {
+// Small icon button for the card footer. `pressed` shows it in the accent color.
+function IconButton({
+  label,
+  pressed,
+  count,
+  onClick,
+  children,
+}: {
+  label: string;
+  pressed?: boolean;
+  count?: number;
+  onClick: (e: MouseEvent) => void;
+  children: ReactNode;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={saved}
-      aria-label={saved ? "Unsave post" : "Save post"}
-      title={saved ? "Saved" : "Save"}
-      className={`-mr-1.5 flex size-7 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
-        saved ? "text-accent" : "text-muted"
+      aria-label={label}
+      aria-pressed={pressed}
+      title={label}
+      className={`flex h-7 min-w-7 items-center justify-center gap-1 rounded-md px-1.5 text-xs tabular-nums hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
+        pressed ? "text-accent" : "text-muted"
       }`}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden>
-        <path d="M4 2.5h8a.5.5 0 0 1 .5.5v10.6a.3.3 0 0 1-.48.24L8 10.9l-4.02 2.94a.3.3 0 0 1-.48-.24V3a.5.5 0 0 1 .5-.5z" />
+      {count !== undefined && <span>{count}</span>}
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        {children}
       </svg>
     </button>
   );

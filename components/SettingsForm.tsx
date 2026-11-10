@@ -2,6 +2,7 @@
 
 import { Accent, ACCENTS } from "@/lib/settings";
 import { useSettings } from "./SettingsProvider";
+import Switch from "./Switch";
 
 export default function SettingsForm() {
   const { theme, setTheme, accent, setAccent } = useSettings();
@@ -14,22 +15,7 @@ export default function SettingsForm() {
         <div>
           <div className="text-sm font-medium">Dark mode</div>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={dark}
-          aria-label="Dark mode"
-          onClick={() => setTheme(dark ? "light" : "dark")}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-            dark ? "bg-accent" : "bg-line"
-          }`}
-        >
-          <span
-            className={`absolute top-1 left-1 size-4 rounded-full shadow transition-transform ${
-              dark ? "translate-x-5 bg-on-accent" : "bg-surface"
-            }`}
-          />
-        </button>
+        <Switch checked={dark} onChange={(on) => setTheme(on ? "dark" : "light")} label="Dark mode" />
       </div>
 
       {/* Accent color */}

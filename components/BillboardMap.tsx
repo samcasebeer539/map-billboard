@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
-import { fetchPostsInView, Post, setSaved } from "@/lib/supabase";
+import { fetchPostsInView, Post, postLink, setSaved } from "@/lib/supabase";
 import { appliedTheme, cssToken, Theme } from "@/lib/settings";
 import {
   addPostLayers,
@@ -24,6 +24,9 @@ import PostForm from "./PostForm";
 import NavMenu from "./NavMenu";
 import PostCard from "./PostCard";
 import Lightbox, { LightboxImage } from "./Lightbox";
+import CommentsPanel from "./CommentsPanel";
+import ReportDialog from "./ReportDialog";
+import Toast from "./Toast";
 
 // MapLibre 6 runs tile parsing in a web worker. Bundlers can't resolve its default
 // worker path, so we serve a copy from /public (copied there by scripts/copy-maplibre-worker.mjs).
@@ -113,11 +116,54 @@ export default function BillboardMap() {
   const loadIdRef = useRef(0); // ignores responses from older, slower requests
   const draftMarkerRef = useRef<Marker | null>(null);
   const cardsRef = useRef(new Map<string, CardEntry>());
+  const highlightRef = useRef<string | null>(null); // post id from a share link
 
+  // Only one side panel at a time: the new-post form (draft) or a post's comments
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
+  const [commentsPost, setCommentsPost] = useState<Post | null>(null);
+  const [reporting, setReporting] = useState<Post | null>(null);
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const { theme, accent, ready } = useSettings();
   const closeLightbox = useCallback(() => setLightbox(null), []);
+  const closeToast = useCallback(() => setToast(null), []);
+  const closeReport = useCallback(() => setReporting(null), []);
+  const commentsPostId = commentsPost?.id;
+
+  // Change one post locally (e.g. a new comment count) and redraw its card
+  const patchPost = useCallback((id: string, patch: Partial<Post>) => {
+    postsRef.current = postsRef.current.map((p) => (p.id === id ? { ...p, ...patch } : p));
+    const card = cardsRef.current.get(id);
+    if (card) {
+      card.post = { ...card.post, ...patch };
+      card.render();
+    }
+  }, []);
+
+  // Stable, so the comments panel doesn't reload on every render
+  const updateCommentCount = useCallback(
+    (n: number) => commentsPostId && patchPost(commentsPostId, { comment_count: n }),
+    [commentsPostId, patchPost]
+  );
+
+  // Phones get the native share sheet; elsewhere the link is copied
+  async function sharePost(p: Post) {
+    const url = postLink(p);
+    if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
+      try {
+        await navigator.share({ title: p.title, url });
+      } catch {
+        /* closed the share sheet */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setToast("Link copied");
+    } catch {
+      setToast("Couldn't copy the link");
+    }
+  }
 
   // Every post in view shows as a card once zoomed in to CARD_ZOOM; otherwise none do
   const syncCards = useCallback(() => {
@@ -174,8 +220,15 @@ export default function BillboardMap() {
           root.render(
             <PostCard
               post={entry.post}
+              highlighted={entry.post.id === highlightRef.current}
               onExpand={(src, alt) => setLightbox({ src, alt })}
               onToggleSave={toggleSave}
+              onOpenComments={() => {
+                setDraft(null);
+                setCommentsPost(entry.post);
+              }}
+              onShare={() => sharePost(entry.post)}
+              onReport={() => setReporting(entry.post)}
             />
           ),
       };
@@ -200,8 +253,9 @@ export default function BillboardMap() {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // "View on map" links from the profile page pass ?lat=..&lng=..
+    // "View on map" and share links pass ?lat=..&lng=.. (share links also ?post=<id> to highlight it)
     const params = new URLSearchParams(window.location.search);
+    highlightRef.current = params.get("post");
     const lat = parseFloat(params.get("lat") ?? "");
     const lng = parseFloat(params.get("lng") ?? "");
     const focus = Number.isFinite(lat) && Number.isFinite(lng);
@@ -227,6 +281,11 @@ export default function BillboardMap() {
     });
 
     map.on("load", loadPosts);
+    map.on("dragstart", () => {
+      if (!highlightRef.current) return;
+      highlightRef.current = null;
+      for (const card of cardsRef.current.values()) card.render();
+    });
     map.on("moveend", loadPosts);
     map.on("zoom", syncCards);
 
@@ -245,6 +304,7 @@ export default function BillboardMap() {
 
       const f = nearestPostFeature(map, e.point);
       if (!f) {
+        setCommentsPost(null);
         setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng });
         return;
       }
@@ -300,7 +360,7 @@ export default function BillboardMap() {
 
       {/* Menu button: top-left; slides beside the post form (sm+) or hides behind it on phones.
           left-99 = the form's 380px width + 16px gap */}
-      <div className={`absolute top-4 z-20 transition-[left] duration-200 ${draft ? "left-4 max-sm:hidden sm:left-99" : "left-4"}`}>
+      <div className={`absolute top-4 z-20 transition-[left] duration-200 ${draft || commentsPost ? "left-4 max-sm:hidden sm:left-99" : "left-4"}`}>
         <NavMenu />
       </div>
 
@@ -315,7 +375,31 @@ export default function BillboardMap() {
         />
       )}
 
+      {commentsPost && (
+        <CommentsPanel
+          key={commentsPost.id}
+          post={commentsPost}
+          onClose={() => setCommentsPost(null)}
+          onCountChange={updateCommentCount}
+        />
+      )}
+
+      <ReportDialog
+        post={reporting}
+        onClose={closeReport}
+        onReported={(p) => {
+          // Hide it for this person straight away (the server does the same from now on)
+          postsRef.current = postsRef.current.filter((x) => x.id !== p.id);
+          (mapRef.current?.getSource(SOURCE) as GeoJSONSource | undefined)?.setData(toGeoJSON(postsRef.current));
+          syncCards();
+          if (commentsPost?.id === p.id) setCommentsPost(null);
+          setReporting(null);
+          setToast("Thanks, the post was reported");
+        }}
+      />
+
       <Lightbox image={lightbox} onClose={closeLightbox} />
+      <Toast message={toast} onDone={closeToast} />
     </>
   );
 }

@@ -12,7 +12,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`.
+   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`.
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
@@ -46,6 +46,12 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 - `components/PostForm.tsx`: the panel that opens when you click the map.
 - `components/ImagePicker.tsx`: photo picker. Photos are resized to 1600px WebP in the browser, then uploaded to the `post-images` bucket under the user's own folder.
 - Posters choose how long a post stays up (1 day to 3 months, default 1 month). Expiry dates only show on the Profile page.
+
+**Comments, sharing and reports**
+- Posters can turn on comments when creating or editing a post. `components/CommentsPanel.tsx` shows the thread; commenters appear as "You", "Poster" or "Anonymous" (user ids are never sent to the browser). Posters can delete any comment on their post.
+- The share button copies a link (or opens the share sheet on phones) like `/?post=<id>&lat=..&lng=..`, which opens the map zoomed in with that card highlighted.
+- The flag button (`components/ReportDialog.tsx`) reports a post. It's hidden for the reporter right away and for everyone at 3 reports. Review reports in Supabase → Table Editor → `post_reports`.
+- Each person can have up to 10 active posts (enforced by a database trigger; expired and deleted posts don't count).
 
 **Profile and settings**
 - `components/ProfileTabs.tsx`: switches between `MyPosts` (edit, delete, save counts) and `SavedPosts`.

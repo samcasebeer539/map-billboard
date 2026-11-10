@@ -4,18 +4,27 @@ import Link from "next/link";
 import { useState } from "react";
 import Select from "./Select";
 import Field from "./Field";
+import Switch from "./Switch";
 import ImagePicker from "./ImagePicker";
-import PostSummary, { fmtDate, isExpired, saveLabel } from "./PostSummary";
+import PostSummary, { commentLabel, fmtDate, isExpired, saveLabel } from "./PostSummary";
 import { PostList, usePostList } from "./PostList";
-import { BODY_MAX, CATEGORIES, deletePost, Duration, DURATIONS, fetchMyPosts, imageUrl, Post, TITLE_MAX, updatePost } from "@/lib/supabase";
+import { BODY_MAX, CATEGORIES, POST_LIMIT, deletePost, Duration, DURATIONS, fetchMyPosts, imageUrl, Post, TITLE_MAX, updatePost } from "@/lib/supabase";
 
 // The signed-in visitor's own posts, with edit and delete.
 // onCount reports how many posts are listed (shown in the Profile tab).
 export default function MyPosts({ onCount }: { onCount?: (n: number) => void }) {
   const { posts, error, reload } = usePostList(fetchMyPosts, onCount);
+  const active = posts?.filter((p) => !isExpired(p)).length ?? 0;
 
   return (
-    <PostList
+    <div className="flex flex-col gap-4">
+      {posts && posts.length > 0 && (
+        <p className={`text-xs ${active >= POST_LIMIT ? "text-danger" : "text-muted"}`}>
+          {active} of {POST_LIMIT} active posts
+          {active >= POST_LIMIT && " · delete one or let one expire to post again"}
+        </p>
+      )}
+      <PostList
       posts={posts}
       error={error}
       empty={
@@ -29,7 +38,8 @@ export default function MyPosts({ onCount }: { onCount?: (n: number) => void }) 
       }
     >
       {(p) => <PostRow key={p.id} post={p} onChanged={reload} />}
-    </PostList>
+      </PostList>
+    </div>
   );
 }
 
@@ -68,6 +78,7 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
         <>
           Posted {fmtDate(post.created_at)} · {expired ? "Expired" : "Expires"} {fmtDate(post.expires_at)} ·{" "}
           {saveLabel(post.save_count)}
+          {post.comments_enabled && ` · ${commentLabel(post.comment_count)}`}
         </>
       }
       actions={
@@ -93,6 +104,7 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
   const [title, setTitle] = useState(post.title);
   const [body, setBody] = useState(post.body);
   const [category, setCategory] = useState(post.category);
+  const [commentsEnabled, setCommentsEnabled] = useState(post.comments_enabled);
   const [image, setImage] = useState<File | null | undefined>(undefined); // undefined = unchanged
   // First option keeps the current date; the rest count from now (so expired posts can be renewed)
   const keepLabel = `${fmtDate(post.expires_at)} (${isExpired(post) ? "expired" : "current"})`;
@@ -106,7 +118,7 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
     setBusy(true);
     setError(null);
     const duration = expiry === keepLabel ? undefined : (expiry.replace("In ", "") as Duration);
-    const err = await updatePost(post, { title: title.trim(), body: body.trim(), category, image, duration });
+    const err = await updatePost(post, { title: title.trim(), body: body.trim(), category, commentsEnabled, image, duration });
     setBusy(false);
     if (err) return setError(err);
     onSaved();
@@ -148,6 +160,12 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
           onError={setError}
         />
       </Field>
+      <div className="flex items-center justify-between gap-4">
+        <label htmlFor={`${id}-comments`} className="text-sm">
+          Allow comments
+        </label>
+        <Switch id={`${id}-comments`} checked={commentsEnabled} onChange={setCommentsEnabled} />
+      </div>
       <Field id={`${id}-body`} label="Details" className="flex flex-col">
         <textarea
           id={`${id}-body`}

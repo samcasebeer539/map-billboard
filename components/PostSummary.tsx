@@ -10,6 +10,7 @@ export const fmtDate = (d: string) =>
 export const isExpired = (post: Post) => new Date(post.expires_at) < new Date();
 
 export const saveLabel = (n: number) => `${n} ${n === 1 ? "save" : "saves"}`;
+export const commentLabel = (n: number) => `${n} ${n === 1 ? "comment" : "comments"}`;
 
 // Read-only post card used on the Profile page: content + thumbnail on top,
 // a meta line and action buttons underneath.
@@ -35,6 +36,11 @@ export default function PostSummary({
           <div className="flex items-center gap-2 text-xs text-muted">
             <span className="text-accent uppercase tracking-wide">{post.category}</span>
             {expired && <span className="rounded-full bg-surface-2 px-2 py-0.5">Expired</span>}
+            {post.hidden && (
+              <span className="rounded-full bg-danger/10 px-2 py-0.5 text-danger" title="Hidden from the map after several reports">
+                Hidden
+              </span>
+            )}
           </div>
           <h3 className="mt-1 text-sm font-medium">{post.title}</h3>
           {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
