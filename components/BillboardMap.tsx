@@ -61,6 +61,32 @@ function nearestPostFeature(map: MlMap, point: { x: number; y: number }) {
   return best;
 }
 
+// Posts are loaded for more than the visible area, so cards don't vanish the moment their
+// dot leaves the screen and nearby posts are already there when you pan to them.
+const LOAD_MARGIN = 0.5; // extra area on every side, as a fraction of the screen size
+const CARD_MAX_HEIGHT = 480; // tallest card (320px photo + text) + lift: dots this far below the screen still show cards
+
+function paddedBounds(map: MlMap) {
+  const { clientWidth: w, clientHeight: h } = map.getCanvas();
+  const padX = w * LOAD_MARGIN;
+  const padY = h * LOAD_MARGIN;
+  // Unproject all four padded corners so this also works when the map is rotated
+  const corners = [
+    [-padX, -padY],
+    [w + padX, -padY],
+    [w + padX, h + padY + CARD_MAX_HEIGHT],
+    [-padX, h + padY + CARD_MAX_HEIGHT],
+  ].map(([x, y]) => map.unproject([x, y]));
+  const lngs = corners.map((c) => c.lng);
+  const lats = corners.map((c) => c.lat);
+  return {
+    west: Math.max(-180, Math.min(...lngs)),
+    east: Math.min(180, Math.max(...lngs)),
+    south: Math.max(-85, Math.min(...lats)),
+    north: Math.min(85, Math.max(...lats)),
+  };
+}
+
 const HOVER_Z = 10_000; // above any stacking value below
 
 // Overlapping cards: the one whose post sits lower on screen is in front (like objects
@@ -163,8 +189,7 @@ export default function BillboardMap() {
     const map = mapRef.current;
     if (!map) return;
     const loadId = ++loadIdRef.current;
-    const b = map.getBounds();
-    const posts = await fetchPostsInView({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() });
+    const posts = await fetchPostsInView(paddedBounds(map));
     if (loadId !== loadIdRef.current) return; // the map moved again while this was loading
     postsRef.current = posts;
     (map.getSource(SOURCE) as GeoJSONSource | undefined)?.setData(toGeoJSON(posts));
