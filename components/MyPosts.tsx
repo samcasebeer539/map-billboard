@@ -7,7 +7,7 @@ import Field from "./Field";
 import ImagePicker from "./ImagePicker";
 import PostSummary, { fmtDate, isExpired, saveLabel } from "./PostSummary";
 import { PostList, usePostList } from "./PostList";
-import { BODY_MAX, CATEGORIES, deletePost, fetchMyPosts, imageUrl, Post, TITLE_MAX, updatePost } from "@/lib/supabase";
+import { BODY_MAX, CATEGORIES, deletePost, Duration, DURATIONS, fetchMyPosts, imageUrl, Post, TITLE_MAX, updatePost } from "@/lib/supabase";
 
 // The signed-in visitor's own posts, with edit and delete.
 // onCount reports how many posts are listed (shown in the Profile tab).
@@ -94,6 +94,9 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
   const [body, setBody] = useState(post.body);
   const [category, setCategory] = useState(post.category);
   const [image, setImage] = useState<File | null | undefined>(undefined); // undefined = unchanged
+  // First option keeps the current date; the rest count from now (so expired posts can be renewed)
+  const keepLabel = `${fmtDate(post.expires_at)} (${isExpired(post) ? "expired" : "current"})`;
+  const [expiry, setExpiry] = useState(keepLabel);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const id = `edit-${post.id}`;
@@ -102,7 +105,8 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
     if (!title.trim()) return setError("Title can't be empty.");
     setBusy(true);
     setError(null);
-    const err = await updatePost(post, { title: title.trim(), body: body.trim(), category, image });
+    const duration = expiry === keepLabel ? undefined : (expiry.replace("In ", "") as Duration);
+    const err = await updatePost(post, { title: title.trim(), body: body.trim(), category, image, duration });
     setBusy(false);
     if (err) return setError(err);
     onSaved();
@@ -121,6 +125,15 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
       </Field>
       <Field id={`${id}-category`} label="Category">
         <Select id={`${id}-category`} value={category} options={CATEGORIES} onChange={setCategory} />
+      </Field>
+      <Field id={`${id}-expiry`} label="Expires">
+        <Select
+          id={`${id}-expiry`}
+          value={expiry}
+          options={[keepLabel, ...Object.keys(DURATIONS).map((d) => `In ${d}`)]}
+          onChange={setExpiry}
+          capitalize={false}
+        />
       </Field>
       <Field id={`${id}-image`} label="Photo" optional>
         <ImagePicker

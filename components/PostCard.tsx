@@ -38,8 +38,8 @@ export default function PostCard({ post, onClose, onExpand, onToggleSave }: Prop
           </button>
         )}
 
-        <div className="pr-6 text-xs font-medium uppercase tracking-wide text-accent">{post.category}</div>
-        <div className="mt-1 text-sm font-semibold">{post.title}</div>
+        <div className="pr-6 text-xs text-accent capitalize">{post.category}</div>
+        <div className="mt-1 text-sm font-medium">{post.title}</div>
         {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
 
         <div className="mt-2 flex items-center justify-between">
@@ -71,7 +71,7 @@ function SaveButton({ count, saved, onClick }: { count: number; saved: boolean; 
       aria-pressed={saved}
       aria-label={`${saved ? "Unsave" : "Save"} post, ${count} ${count === 1 ? "save" : "saves"}`}
       title={saved ? "Saved" : "Save"}
-      className={`-mr-1.5 flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium tabular-nums hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
+      className={`-mr-1.5 flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs tabular-nums hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
         saved ? "text-accent" : "text-muted"
       }`}
     >

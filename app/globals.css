@@ -51,7 +51,12 @@
 }
 
 /* ------------------------------------------------------------------
-   Type scale: text-xs (meta), text-sm (body + UI), text-lg (titles).
+   Text styles (two weights: regular and medium):
+     Title   text-lg font-medium   page and panel titles
+     Strong  text-sm font-medium   post titles, buttons, tabs, menu items, setting names
+     Body    text-sm               post text, messages, dropdown options
+     Small   text-xs               labels, dates, categories, counts
+   Colors: text-fg, text-muted, text-accent, text-danger.
    Exception: text inputs are text-base on phones to stop iOS zoom-on-focus.
    Radius: rounded-lg (8px) for cards, panels and controls;
    rounded-md (6px) for items nested inside them (menu items, tabs, card buttons).
@@ -64,7 +69,7 @@
   @apply bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_20px_rgb(0_0_0/0.12)] dark:shadow-[0_1px_2px_rgb(0_0_0/0.4),0_8px_24px_rgb(0_0_0/0.5)];
 }
 @utility field-label {
-  @apply mb-1.5 block text-xs font-medium text-muted;
+  @apply mb-1.5 block text-xs text-muted;
 }
 @utility input {
   /* 16px on phones: iOS Safari zooms the page into any field with smaller text */

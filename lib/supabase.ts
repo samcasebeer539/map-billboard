@@ -125,13 +125,15 @@ export async function createPost(input: {
 }
 
 // image: undefined = keep current, null = remove, File = replace
+// duration: undefined = keep the current expiry, otherwise expire that long from now
 export async function updatePost(
   post: Post,
-  changes: { title: string; body: string; category: string; image?: File | null }
+  changes: { title: string; body: string; category: string; image?: File | null; duration?: Duration }
 ): Promise<string | null> {
   const { db, error: authError } = await signedIn();
   if (!db) return authError;
-  const { image, ...fields } = changes;
+  const { image, duration, ...fields } = changes;
+  const expiry = duration ? { expires_at: new Date(Date.now() + DURATIONS[duration] * 86_400_000).toISOString() } : {};
 
   let imagePath = post.image_path;
   if (image !== undefined) {
@@ -143,7 +145,7 @@ export async function updatePost(
     }
   }
 
-  const { error } = await db.from("posts").update({ ...fields, image_path: imagePath }).eq("id", post.id);
+  const { error } = await db.from("posts").update({ ...fields, ...expiry, image_path: imagePath }).eq("id", post.id);
   if (error) {
     if (imagePath && imagePath !== post.image_path) await removeImage(db, imagePath);
     return error.message;

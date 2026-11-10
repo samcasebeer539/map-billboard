@@ -33,10 +33,10 @@ export default function PostSummary({
       <div className="flex gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs text-muted">
-            <span className="font-medium uppercase tracking-wide">{post.category}</span>
+            <span className="text-accent capitalize">{post.category}</span>
             {expired && <span className="rounded-full bg-surface-2 px-2 py-0.5">Expired</span>}
           </div>
-          <h3 className="mt-1 text-sm font-semibold">{post.title}</h3>
+          <h3 className="mt-1 text-sm font-medium">{post.title}</h3>
           {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
         </div>
         {post.image_path && (

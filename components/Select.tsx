@@ -132,7 +132,7 @@ export default function Select({ id, value, options, onChange, capitalize = true
               onClick={() => choose(i)}
               className={`flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm ${cap} ${
                 i === active ? "bg-surface-2" : ""
-              } ${o === value ? "font-medium text-accent" : "text-fg"}`}
+              } ${o === value ? "text-accent" : "text-fg"}`}
             >
               {o}
               {o === value && (

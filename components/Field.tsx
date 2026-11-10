@@ -18,7 +18,7 @@ export default function Field({
     <div className={className}>
       <label htmlFor={id} className="field-label">
         {label}
-        {optional && <span className="font-normal"> (optional)</span>}
+        {optional && " (optional)"}
       </label>
       {children}
     </div>

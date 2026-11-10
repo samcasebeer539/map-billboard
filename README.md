@@ -12,7 +12,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`.
+   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`.
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
