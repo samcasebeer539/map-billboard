@@ -108,6 +108,13 @@
 @utility scrim {
   @apply bg-black/70 backdrop-blur-sm;
 }
+/* Scrolls, but without a visible scrollbar */
+@utility no-scrollbar {
+  scrollbar-width: none; /* Firefox, and Chrome/Edge 121+ */
+  &::-webkit-scrollbar {
+    display: none; /* Safari and older Chrome */
+  }
+}
 @utility link {
   @apply font-medium text-accent hover:underline;
 }

@@ -22,7 +22,7 @@ export default function SidePanel({
   const className = "side-panel elevated bg-bg absolute inset-y-0 left-0 z-10 flex w-full flex-col sm:w-95";
   const content = (
     <>
-      <header className="flex items-start justify-between gap-4 px-4 pt-4">
+      <header className="flex items-start justify-between gap-4 px-4 pt-4 pb-2">
         <div className="min-w-0">
           <h2 className="text-lg font-medium">{title}</h2>
           {subtitle && <div className="text-xs text-muted">{subtitle}</div>}
@@ -35,7 +35,7 @@ export default function SidePanel({
           </button>
         )}
       </header>
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">{children}</div>
+      <div className="no-scrollbar flex flex-1 flex-col gap-4 overflow-y-auto p-4">{children}</div>
       {footer && <footer className="p-4 pt-0">{footer}</footer>}
     </>
   );
