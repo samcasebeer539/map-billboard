@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import FloatingIconButton from "./FloatingIconButton";
 
 export type LightboxImage = { src: string; alt: string };
 
@@ -37,17 +38,11 @@ export default function Lightbox({ image, onClose }: { image: LightboxImage | nu
         onClick={(e) => e.stopPropagation()}
         className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
       />
-      <button
-        ref={closeRef}
-        type="button"
-        onClick={onClose}
-        aria-label="Close photo"
-        className="btn floating absolute top-4 right-4 size-10 px-0"
-      >
+      <FloatingIconButton ref={closeRef} onClick={onClose} aria-label="Close photo" className="absolute! top-4 right-4">
         <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
           <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
         </svg>
-      </button>
+      </FloatingIconButton>
     </div>
   );
 }

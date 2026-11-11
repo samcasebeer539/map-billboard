@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
+import FloatingIconButton from "./FloatingIconButton";
 
 // 20×20 line icons, drawn in the current text color
 const icon = (paths: ReactNode) => (
@@ -70,17 +71,11 @@ export default function NavMenu() {
           near-misses, so they don't land on the map and drop a pin */}
       {open && <div className="absolute -inset-4" aria-hidden />}
 
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label="Menu"
-        aria-expanded={open}
-        className="floating relative flex size-10 items-center justify-center rounded-lg text-fg hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
+      <FloatingIconButton onClick={() => setOpen((o) => !o)} aria-label="Menu" aria-expanded={open}>
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           {open ? <path d="M5 5l10 10M15 5L5 15" /> : <path d="M3 5h14M3 10h14M3 15h14" />}
         </svg>
-      </button>
+      </FloatingIconButton>
 
       {open && (
         // p-4 is the transparent buffer; top-8 + p-4 keeps the menu 48px below the button's top

@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { CATEGORIES } from "@/lib/supabase";
 import { categoryColor } from "@/lib/categories";
+import FloatingIconButton from "./FloatingIconButton";
 
 // Filter button for the map, beside the menu button. Each category toggles on and off;
-// with any on, the map shows only those and the button turns the accent color.
+// with any on, the map shows only those and the button is highlighted like the current page in the nav menu.
 export default function CategoryFilter({
   selected,
   onToggle,
@@ -38,22 +39,19 @@ export default function CategoryFilter({
           side only reaches the menu button's edge, so it doesn't cover that button) */}
       {open && <div className="absolute -top-4 -right-4 -bottom-4 -left-2" aria-hidden />}
 
-      <button
-        type="button"
+      <FloatingIconButton
+        active={active}
         onClick={() => setOpen((o) => !o)}
         aria-label={active ? `Filter categories (${selected.size} on)` : "Filter categories"}
         aria-expanded={open}
         aria-haspopup="menu"
         title="Filter categories"
-        className={`floating relative flex size-10 items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-          active ? "bg-accent! text-on-accent hover:opacity-90" : "text-fg hover:bg-surface-2"
-        }`}
       >
         {/* funnel */}
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M3 4.5h14l-5.5 6.5v4.5l-3 1.5v-6z" />
         </svg>
-      </button>
+      </FloatingIconButton>
 
       {open && (
         // p-4 is a transparent buffer; top-8 + p-4 puts the list 48px below the button's top
