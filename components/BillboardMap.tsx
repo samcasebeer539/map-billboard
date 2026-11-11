@@ -41,6 +41,9 @@ const HIT_RADIUS = { mouse: 12, touch: 22 };
 
 // The dot or group closest to a screen point, within HIT_RADIUS (groups get extra room for their size)
 function nearestPostFeature(map: MlMap, point: { x: number; y: number }) {
+  // The post layers don't exist while the map first loads or while a light/dark style swap
+  // is in progress, and querying a missing layer throws. Nothing to hit until they're back.
+  if (!map.getLayer(DOT_LAYER) || !map.getLayer(CLUSTER_LAYER)) return null;
   const r = window.matchMedia("(pointer: coarse)").matches ? HIT_RADIUS.touch : HIT_RADIUS.mouse;
   const hits = map.queryRenderedFeatures(
     [
@@ -302,7 +305,7 @@ export default function BillboardMap() {
     //  - otherwise: drop a draft pin and open the post form
     map.on("click", async (e) => {
       if ((e.originalEvent.target as HTMLElement).closest(".post-card")) return;
-      if (!map.getLayer(DOT_LAYER)) return; // layers not ready yet
+      if (!map.getLayer(DOT_LAYER)) return; // layers not ready yet: don't drop pins on a half-loaded map
 
       const f = nearestPostFeature(map, e.point);
       if (!f) {
