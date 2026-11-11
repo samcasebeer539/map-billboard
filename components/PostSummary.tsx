@@ -3,6 +3,7 @@
 import { ReactNode, useCallback, useState } from "react";
 import Lightbox from "./Lightbox";
 import { imageUrl, Post } from "@/lib/supabase";
+import { categoryColor } from "@/lib/categories";
 
 export const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -34,7 +35,9 @@ export default function PostSummary({
       <div className="flex gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs text-muted">
-            <span className="text-accent uppercase tracking-wide">{post.category}</span>
+            <span className="uppercase tracking-wide" style={{ color: categoryColor(post.category) }}>
+              {post.category}
+            </span>
             {expired && <span className="rounded-full bg-surface-2 px-2 py-0.5">Expired</span>}
             {post.hidden && (
               <span className="rounded-full bg-danger/10 px-2 py-0.5 text-danger" title="Hidden from the map after several reports">

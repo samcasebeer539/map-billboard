@@ -25,6 +25,7 @@ var d=document.documentElement,t=localStorage.getItem("${STORAGE_KEYS.theme}");
 if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";
 d.classList.toggle("dark",t==="dark");
 var A=${JSON.stringify(ACCENTS)},a=A[localStorage.getItem("${STORAGE_KEYS.accent}")]||A["${DEFAULT_ACCENT}"];
+for(var k in A)d.style.setProperty("--pal-"+k,A[k][t]);
 d.style.setProperty("--accent-light",a.light);d.style.setProperty("--accent-dark",a.dark);
 }catch(e){}})();`;
 
@@ -35,6 +36,15 @@ export function appliedTheme(): Theme {
 
 export function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
+  applyPalette(theme);
+}
+
+// Every palette color as a CSS variable for the current theme (--pal-orange, --pal-teal…),
+// used for category colors. Set before first paint by themeInitScript, then on theme changes.
+function applyPalette(theme: Theme) {
+  for (const [name, shades] of Object.entries(ACCENTS)) {
+    document.documentElement.style.setProperty(`--pal-${name}`, shades[theme]);
+  }
 }
 
 export function applyAccent(accent: Accent) {

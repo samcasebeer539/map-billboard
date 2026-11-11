@@ -8,11 +8,12 @@ type Props = {
   options: readonly string[];
   onChange: (value: string) => void;
   capitalize?: boolean; // title-case the option text (on by default, e.g. categories)
+  swatch?: (option: string) => string; // optional color dot before each option
 };
 
 // Custom dropdown styled with the app's tokens (replaces the native <select>).
 // Keyboard: Up/Down to move, Enter/Space to pick, Escape to close, Home/End, type to jump.
-export default function Select({ id, value, options, onChange, capitalize = true }: Props) {
+export default function Select({ id, value, options, onChange, capitalize = true, swatch }: Props) {
   const cap = capitalize ? "capitalize" : "";
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => Math.max(0, options.indexOf(value)));
@@ -102,7 +103,10 @@ export default function Select({ id, value, options, onChange, capitalize = true
         onKeyDown={onKeyDown}
         className={`input flex items-center justify-between text-left ${cap}`}
       >
-        <span>{value}</span>
+        <span className="flex items-center gap-2">
+          {swatch && <Dot color={swatch(value)} />}
+          {value}
+        </span>
         <svg
           width="16"
           height="16"
@@ -134,7 +138,10 @@ export default function Select({ id, value, options, onChange, capitalize = true
                 i === active ? "bg-surface-2" : ""
               } ${o === value ? "text-accent" : "text-fg"}`}
             >
-              {o}
+              <span className="flex items-center gap-2">
+                {swatch && <Dot color={swatch(o)} />}
+                {o}
+              </span>
               {o === value && (
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M3.5 8.5l3 3 6-7" />
@@ -147,3 +154,7 @@ export default function Select({ id, value, options, onChange, capitalize = true
     </div>
   );
 }
+
+const Dot = ({ color }: { color: string }) => (
+  <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+);

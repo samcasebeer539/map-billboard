@@ -1,9 +1,10 @@
 // Map configuration and the MapLibre layers that draw posts (dots and clusters).
 // Cards are React components (components/PostCard.tsx) placed by BillboardMap.
 
-import { Map as MlMap } from "maplibre-gl";
+import { ExpressionSpecification, Map as MlMap } from "maplibre-gl";
 import type { Post } from "./supabase";
-import { cssToken, Theme } from "./settings";
+import { appliedTheme, cssToken, Theme } from "./settings";
+import { categoryColorExpression } from "./categories";
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 
@@ -39,26 +40,31 @@ export const DOT_LAYER = "posts";
 export const CLUSTER_LAYER = "post-clusters";
 const CLUSTER_COUNT_LAYER = "post-cluster-count";
 
-// The map only needs each post's location and id; card content comes from the Post objects
+// The map only needs each post's location, id and category (for its dot color);
+// card content comes from the Post objects
 export function toGeoJSON(posts: Post[]): GeoJSON.FeatureCollection {
   return {
     type: "FeatureCollection",
     features: posts.map((p) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-      properties: { id: p.id },
+      properties: { id: p.id, category: p.category },
     })),
   };
 }
 
-// Pin colors come from the same CSS tokens as the rest of the UI
+// Dots use their category's color; groups (which can mix categories) use the user's accent.
+// Colors come from the same tokens as the rest of the UI, for the current theme.
 export function applyPinColors(map: MlMap) {
-  const fill = cssToken("--accent");
+  const accent = cssToken("--accent");
   const stroke = cssToken("--surface");
-  for (const id of [DOT_LAYER, CLUSTER_LAYER]) {
-    if (!map.getLayer(id)) continue;
-    map.setPaintProperty(id, "circle-color", fill);
-    map.setPaintProperty(id, "circle-stroke-color", stroke);
+  if (map.getLayer(CLUSTER_LAYER)) {
+    map.setPaintProperty(CLUSTER_LAYER, "circle-color", accent);
+    map.setPaintProperty(CLUSTER_LAYER, "circle-stroke-color", stroke);
+  }
+  if (map.getLayer(DOT_LAYER)) {
+    map.setPaintProperty(DOT_LAYER, "circle-color", categoryColorExpression(appliedTheme(), accent) as ExpressionSpecification);
+    map.setPaintProperty(DOT_LAYER, "circle-stroke-color", stroke);
   }
   if (map.getLayer(CLUSTER_COUNT_LAYER)) {
     map.setPaintProperty(CLUSTER_COUNT_LAYER, "text-color", cssToken("--on-accent"));

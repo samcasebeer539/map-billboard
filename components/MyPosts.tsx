@@ -9,6 +9,7 @@ import ImagePicker from "./ImagePicker";
 import PostSummary, { commentLabel, fmtDate, isExpired, saveLabel } from "./PostSummary";
 import { PostList, usePostList } from "./PostList";
 import { BODY_MAX, CATEGORIES, POST_LIMIT, deletePost, Duration, DURATIONS, fetchMyPosts, imageUrl, Post, TITLE_MAX, updatePost } from "@/lib/supabase";
+import { categoryColor } from "@/lib/categories";
 
 // The signed-in visitor's own posts, with edit and delete.
 // onCount reports how many posts are listed (shown in the Profile tab).
@@ -136,7 +137,7 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
         />
       </Field>
       <Field id={`${id}-category`} label="Category">
-        <Select id={`${id}-category`} value={category} options={CATEGORIES} onChange={setCategory} />
+        <Select id={`${id}-category`} value={category} options={CATEGORIES} onChange={setCategory} swatch={categoryColor} />
       </Field>
       <Field id={`${id}-expiry`} label="Expires">
         <Select

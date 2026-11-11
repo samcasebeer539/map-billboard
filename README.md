@@ -48,6 +48,9 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 - `components/PostCard.tsx`: the card shown on the map (photo, text, date, save button).
 - Zoomed out, nearby posts group into numbered bubbles. From `CARD_ZOOM` in, every post shows as a card. Clicking a dot zooms in to it.
 
+**Categories**
+- `lib/categories.ts` gives each category one of the 7 palette colors, used for its label and its map dot (groups keep your accent color). Add a category in `CATEGORIES` (`lib/supabase.ts`) and give it a color here.
+
 **Posting**
 - `components/PostForm.tsx`: the panel that opens when you click the map.
 - `components/ImagePicker.tsx`: photo picker. Photos are resized to 1600px WebP in the browser, then uploaded to the `post-images` bucket under the user's own folder.

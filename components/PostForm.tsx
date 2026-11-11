@@ -7,6 +7,7 @@ import Field from "./Field";
 import SidePanel from "./SidePanel";
 import Switch from "./Switch";
 import { BODY_MAX, CATEGORIES, createPost, DEFAULT_DURATION, Duration, DURATIONS, TITLE_MAX } from "@/lib/supabase";
+import { categoryColor } from "@/lib/categories";
 
 // e.g. 38.58160° N, 121.49440° W (5 decimals ≈ 1 m precision)
 function formatCoords({ lat, lng }: { lat: number; lng: number }) {
@@ -72,7 +73,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
       </Field>
 
       <Field id="post-category" label="Category">
-        <Select id="post-category" value={category} options={CATEGORIES} onChange={setCategory} />
+        <Select id="post-category" value={category} options={CATEGORIES} onChange={setCategory} swatch={categoryColor} />
       </Field>
 
       <Field id="post-duration" label="Expires">

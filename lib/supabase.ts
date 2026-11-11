@@ -55,7 +55,8 @@ export const BODY_MAX = 500;
 export const COMMENT_MAX = 300;
 export const POST_LIMIT = 10; // active posts per person
 
-export const CATEGORIES = ["general", "event", "lost & found", "for sale", "free", "help wanted"] as const;
+export const CATEGORIES = ["general", "event", "lost & found", "for sale", "free", "help wanted", "service"] as const;
+export type Category = (typeof CATEGORIES)[number];
 
 // How long a new post stays up. Labels are what the form shows; values are days (server allows 1–90).
 export const DURATIONS = {

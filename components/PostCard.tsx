@@ -2,6 +2,7 @@
 
 import { MouseEvent, ReactNode } from "react";
 import { imageUrl, Post } from "@/lib/supabase";
+import { categoryColor } from "@/lib/categories";
 
 type Props = {
   post: Post;
@@ -41,7 +42,9 @@ export default function PostCard({ post, highlighted, onExpand, onToggleSave, on
           </button>
         )}
 
-        <div className="text-xs text-accent uppercase tracking-wide">{post.category}</div>
+        <div className="text-xs uppercase tracking-wide" style={{ color: categoryColor(post.category) }}>
+          {post.category}
+        </div>
         <div className="mt-1 text-sm font-medium">{post.title}</div>
         {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
 
