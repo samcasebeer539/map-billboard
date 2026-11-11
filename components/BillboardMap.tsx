@@ -22,11 +22,13 @@ import {
 import { useSettings } from "./SettingsProvider";
 import PostForm from "./PostForm";
 import NavMenu from "./NavMenu";
-import PostCard from "./PostCard";
+import PostCard, { PostActions } from "./PostCard";
+import FeedPanel from "./FeedPanel";
 import Lightbox, { LightboxImage } from "./Lightbox";
 import CommentsPanel from "./CommentsPanel";
 import ReportDialog from "./ReportDialog";
 import Toast from "./Toast";
+import { boundsAround, distanceKm } from "@/lib/geo";
 
 // MapLibre 6 runs tile parsing in a web worker. Bundlers can't resolve its default
 // worker path, so we serve a copy from /public (copied there by scripts/copy-maplibre-worker.mjs).
@@ -95,6 +97,13 @@ function paddedBounds(map: MlMap) {
   };
 }
 
+// The nearby feed: posts within this distance of the clicked one, closest first
+const FEED_RADIUS_KM = 10;
+const FEED_MAX = 50;
+
+const PANEL_WIDTH = 380; // SidePanel on sm+ screens (w-95)
+const isPhone = () => window.matchMedia("(max-width: 639px)").matches; // SidePanel is full screen
+
 const HOVER_Z = 10_000; // above any stacking value below
 
 // Overlapping cards: the one whose post sits lower on screen is in front (like objects
@@ -121,10 +130,15 @@ export default function BillboardMap() {
   const loadIdRef = useRef(0); // ignores responses from older, slower requests
   const draftMarkerRef = useRef<Marker | null>(null);
   const cardsRef = useRef(new Map<string, CardEntry>());
-  const highlightRef = useRef<string | null>(null); // post id from a share link
+  const highlightRef = useRef<string | null>(null); // post id from a share link, or picked in the feed
+  const feedLoadRef = useRef(0);
+  const feedOpenRef = useRef(false);
 
-  // Only one side panel at a time: the new-post form (draft) or a post's comments
+  // Side panels: the new-post form (draft) or the nearby feed, with a post's comments able to
+  // open on top of the feed (closing them goes back to it)
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
+  const [feed, setFeed] = useState<{ origin: Post; posts: Post[] | null } | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
   const [commentsPost, setCommentsPost] = useState<Post | null>(null);
   const [reporting, setReporting] = useState<Post | null>(null);
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
@@ -134,16 +148,93 @@ export default function BillboardMap() {
   const closeToast = useCallback(() => setToast(null), []);
   const closeReport = useCallback(() => setReporting(null), []);
   const commentsPostId = commentsPost?.id;
+  useEffect(() => {
+    feedOpenRef.current = feed !== null;
+  }, [feed]);
 
-  // Change one post locally (e.g. a new comment count) and redraw its card
+  // Change one post locally (e.g. a new comment count) and redraw its card and feed entry
   const patchPost = useCallback((id: string, patch: Partial<Post>) => {
-    postsRef.current = postsRef.current.map((p) => (p.id === id ? { ...p, ...patch } : p));
+    const apply = (p: Post) => (p.id === id ? { ...p, ...patch } : p);
+    postsRef.current = postsRef.current.map(apply);
+    setFeed((f) => f && { origin: apply(f.origin), posts: f.posts?.map(apply) ?? null });
     const card = cardsRef.current.get(id);
     if (card) {
       card.post = { ...card.post, ...patch };
       card.render();
     }
   }, []);
+
+  // Optimistic save toggle: update right away, roll back if the server says no
+  const toggleSave = useCallback(
+    async (p: Post) => {
+      const next = !p.saved;
+      patchPost(p.id, { saved: next, save_count: p.save_count + (next ? 1 : -1) });
+      const err = await setSaved(p.id, next);
+      if (err) {
+        console.error("Couldn't update save:", err);
+        patchPost(p.id, { saved: p.saved, save_count: p.save_count });
+      }
+    },
+    [patchPost]
+  );
+
+  // Ring one post (on its map card and in the feed), or none
+  const setHighlight = useCallback((id: string | null) => {
+    highlightRef.current = id;
+    setFocusedId(id);
+    for (const card of cardsRef.current.values()) card.render();
+  }, []);
+
+  // Move the map so a post's card is in view, beside the side panel rather than under it
+  const showOnMap = useCallback((p: Post, always: boolean) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const besidePanel = !isPhone();
+    const x = map.project([p.lng, p.lat]).x;
+    if (!always && (!besidePanel || x > PANEL_WIDTH + 140)) return; // already clear of the panel
+    map.easeTo({
+      center: [p.lng, p.lat],
+      zoom: Math.max(map.getZoom(), CARD_ZOOM),
+      offset: besidePanel ? [PANEL_WIDTH / 2, 120] : [0, 120], // the card hangs above its dot
+    });
+  }, []);
+
+  // Open the feed of posts near `origin`, closest first
+  const openFeed = useCallback(
+    async (origin: Post) => {
+      setDraft(null);
+      setCommentsPost(null);
+      setFeed({ origin, posts: null });
+      setHighlight(origin.id);
+      showOnMap(origin, false);
+
+      const loadId = ++feedLoadRef.current;
+      const found = await fetchPostsInView(boundsAround(origin, FEED_RADIUS_KM));
+      if (loadId !== feedLoadRef.current) return; // another post was clicked meanwhile
+      const posts = found
+        .map((p) => ({ p, d: distanceKm(origin, p) }))
+        .filter(({ d }) => d <= FEED_RADIUS_KM)
+        .sort((a, b) => a.d - b.d || Number(b.p.id === origin.id) - Number(a.p.id === origin.id))
+        .slice(0, FEED_MAX)
+        .map(({ p }) => p);
+      setFeed((f) => f && f.origin.id === origin.id ? { ...f, posts } : f);
+    },
+    [setHighlight, showOnMap]
+  );
+
+  const closeFeed = useCallback(() => {
+    feedLoadRef.current++;
+    setFeed(null);
+    setHighlight(null);
+  }, [setHighlight]);
+
+  // Picking a post in the feed: ring it and bring it into view. Phones close the
+  // full-screen feed so the map can be seen.
+  function focusPost(p: Post) {
+    setHighlight(p.id);
+    showOnMap(p, true);
+    if (isPhone()) setFeed(null);
+  }
 
   // Stable, so the comments panel doesn't reload on every render
   const updateCommentCount = useCallback(
@@ -169,6 +260,23 @@ export default function BillboardMap() {
       setToast("Couldn't copy the link");
     }
   }
+
+  // The actions on a post, the same on map cards and in the feed. Kept in a ref so the
+  // map cards (created once, outside React's render) always call the current versions.
+  const actionsFor = (p: Post): PostActions => ({
+    onExpand: (src, alt) => setLightbox({ src, alt }),
+    onToggleSave: () => toggleSave(p),
+    onOpenComments: () => {
+      setDraft(null);
+      setCommentsPost(p);
+    },
+    onShare: () => sharePost(p),
+    onReport: () => setReporting(p),
+  });
+  const cardActionsRef = useRef({ actionsFor, openFeed, closeFeed });
+  useEffect(() => {
+    cardActionsRef.current = { actionsFor, openFeed, closeFeed };
+  });
 
   // Every post in view shows as a card once zoomed in to CARD_ZOOM; otherwise none do
   const syncCards = useCallback(() => {
@@ -203,20 +311,6 @@ export default function BillboardMap() {
       el.addEventListener("mouseleave", () => (el.style.zIndex = el.dataset.z ?? ""));
       const root = createRoot(el);
 
-      // Optimistic save toggle: update right away, roll back if the server says no
-      const toggleSave = async () => {
-        const before = entry.post;
-        const next = !before.saved;
-        entry.post = { ...before, saved: next, save_count: before.save_count + (next ? 1 : -1) };
-        entry.render();
-        const err = await setSaved(p.id, next);
-        if (err) {
-          console.error("Couldn't update save:", err);
-          entry.post = before;
-          entry.render();
-        }
-      };
-
       const entry: CardEntry = {
         marker: new Marker({ element: el, anchor: "bottom", offset: [0, -CARD_LIFT] }).setLngLat([p.lng, p.lat]),
         root,
@@ -226,14 +320,8 @@ export default function BillboardMap() {
             <PostCard
               post={entry.post}
               highlighted={entry.post.id === highlightRef.current}
-              onExpand={(src, alt) => setLightbox({ src, alt })}
-              onToggleSave={toggleSave}
-              onOpenComments={() => {
-                setDraft(null);
-                setCommentsPost(entry.post);
-              }}
-              onShare={() => sharePost(entry.post)}
-              onReport={() => setReporting(entry.post)}
+              onOpen={() => cardActionsRef.current.openFeed(entry.post)}
+              {...cardActionsRef.current.actionsFor(entry.post)}
             />
           ),
       };
@@ -286,10 +374,9 @@ export default function BillboardMap() {
     });
 
     map.on("load", loadPosts);
+    // A share link's highlight goes once you start exploring (the feed's stays while it's open)
     map.on("dragstart", () => {
-      if (!highlightRef.current) return;
-      highlightRef.current = null;
-      for (const card of cardsRef.current.values()) card.render();
+      if (highlightRef.current && !feedOpenRef.current) setHighlight(null);
     });
     map.on("moveend", loadPosts);
     map.on("zoom", syncCards);
@@ -310,6 +397,7 @@ export default function BillboardMap() {
       const f = nearestPostFeature(map, e.point);
       if (!f) {
         setCommentsPost(null);
+        cardActionsRef.current.closeFeed();
         setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng });
         return;
       }
@@ -332,7 +420,7 @@ export default function BillboardMap() {
       cards.clear();
       map.remove();
     };
-  }, [loadPosts, syncCards]);
+  }, [loadPosts, syncCards, setHighlight]);
 
   // Swap the basemap when the theme changes
   useEffect(() => {
@@ -365,7 +453,7 @@ export default function BillboardMap() {
 
       {/* Menu button: top-left; slides beside the post form (sm+) or hides behind it on phones.
           left-99 = the form's 380px width + 16px gap */}
-      <div className={`absolute top-4 z-20 transition-[left] duration-200 ${draft || commentsPost ? "left-4 max-sm:hidden sm:left-99" : "left-4"}`}>
+      <div className={`absolute top-4 z-20 transition-[left] duration-200 ${draft || feed || commentsPost ? "left-4 max-sm:hidden sm:left-99" : "left-4"}`}>
         <NavMenu />
       </div>
 
@@ -377,6 +465,18 @@ export default function BillboardMap() {
             setDraft(null);
             loadPosts();
           }}
+        />
+      )}
+
+      {feed && (
+        <FeedPanel
+          origin={feed.origin}
+          posts={feed.posts}
+          radiusKm={FEED_RADIUS_KM}
+          focusedId={focusedId}
+          onFocus={focusPost}
+          onClose={closeFeed}
+          actionsFor={actionsFor}
         />
       )}
 
@@ -398,6 +498,8 @@ export default function BillboardMap() {
           (mapRef.current?.getSource(SOURCE) as GeoJSONSource | undefined)?.setData(toGeoJSON(postsRef.current));
           syncCards();
           if (commentsPost?.id === p.id) setCommentsPost(null);
+          if (feed?.origin.id === p.id) closeFeed();
+          else setFeed((f) => f && { ...f, posts: f.posts?.filter((x) => x.id !== p.id) ?? null });
           setReporting(null);
           setToast("Thanks, the post was reported");
         }}
