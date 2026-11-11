@@ -89,6 +89,10 @@
 @utility btn-ghost-sm {
   @apply btn-ghost h-8 px-3;
 }
+/* Dimmed backdrop behind anything modal (photo viewer, dialogs) */
+@utility scrim {
+  @apply bg-black/70 backdrop-blur-sm;
+}
 @utility link {
   @apply font-medium text-accent hover:underline;
 }

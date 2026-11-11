@@ -28,7 +28,7 @@ export default function Lightbox({ image, onClose }: { image: LightboxImage | nu
       aria-modal="true"
       aria-label={image.alt || "Photo"}
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center scrim p-4"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
