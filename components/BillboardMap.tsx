@@ -24,8 +24,8 @@ import PostForm from "./PostForm";
 import NavMenu from "./NavMenu";
 import PostCard, { PostActions } from "./PostCard";
 import FeedPanel from "./FeedPanel";
-import Select from "./Select";
-import { ALL_CATEGORIES, FILTER_OPTIONS, filterSwatch, matchesFilter } from "@/lib/categories";
+import CategoryFilter from "./CategoryFilter";
+import { matchesFilter } from "@/lib/categories";
 import Lightbox, { LightboxImage } from "./Lightbox";
 import CommentsPanel from "./CommentsPanel";
 import ReportDialog from "./ReportDialog";
@@ -107,7 +107,7 @@ const PANEL_WIDTH = 380; // SidePanel on sm+ screens (w-95)
 const isPhone = () => window.matchMedia("(max-width: 639px)").matches; // SidePanel is full screen
 
 // The posts that pass the category filter: what the map's dots, groups and cards show
-const shownPosts = (posts: Post[], filter: string) => posts.filter((p) => matchesFilter(p.category, filter));
+const shownPosts = (posts: Post[], filter: ReadonlySet<string>) => posts.filter((p) => matchesFilter(p.category, filter));
 
 const HOVER_Z = 10_000; // above any stacking value below
 
@@ -132,7 +132,7 @@ export default function BillboardMap() {
   const mapRef = useRef<MlMap | null>(null);
   const styleThemeRef = useRef<Theme | null>(null);
   const postsRef = useRef<Post[]>([]); // every post loaded, whatever the category filter
-  const filterRef = useRef(ALL_CATEGORIES);
+  const filterRef = useRef<ReadonlySet<string>>(new Set()); // categories toggled on; none = show all
   const loadIdRef = useRef(0); // ignores responses from older, slower requests
   const draftMarkerRef = useRef<Marker | null>(null);
   const cardsRef = useRef(new Map<string, CardEntry>());
@@ -149,7 +149,7 @@ export default function BillboardMap() {
   const [reporting, setReporting] = useState<Post | null>(null);
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [filter, setFilter] = useState(ALL_CATEGORIES);
+  const [filter, setFilter] = useState<ReadonlySet<string>>(new Set());
   const { theme, accent, ready } = useSettings();
   const closeLightbox = useCallback(() => setLightbox(null), []);
   const closeToast = useCallback(() => setToast(null), []);
@@ -468,20 +468,16 @@ export default function BillboardMap() {
       <div className={`absolute top-4 z-20 transition-[left] duration-200 ${draft || feed || commentsPost ? "left-4 max-sm:hidden sm:left-99" : "left-4"}`}>
         <div className="flex items-start gap-2">
           <NavMenu />
-          <div className="w-44">
-            <Select
-              value={filter}
-              options={FILTER_OPTIONS}
-              onChange={(v) => {
-                filterRef.current = v;
-                setFilter(v);
-                showPosts();
-              }}
-              swatch={filterSwatch}
-              floating
-              ariaLabel="Show category"
-            />
-          </div>
+          <CategoryFilter
+            selected={filter}
+            onToggle={(c) => {
+              const next = new Set(filter);
+              if (!next.delete(c)) next.add(c);
+              filterRef.current = next;
+              setFilter(next);
+              showPosts();
+            }}
+          />
         </div>
       </div>
 
@@ -501,7 +497,7 @@ export default function BillboardMap() {
           origin={feed.origin}
           posts={feed.posts && feed.posts.filter((p) => p.id === feed.origin.id || matchesFilter(p.category, filter))}
           radiusKm={FEED_RADIUS_KM}
-          category={filter === ALL_CATEGORIES ? undefined : filter}
+          filtered={filter.size > 0}
           focusedId={focusedId}
           onFocus={focusPost}
           onClose={closeFeed}

@@ -25,17 +25,8 @@ export function categoryColor(category: string): string {
   return name ? `var(--pal-${name})` : "var(--accent)";
 }
 
-// Map filter: "all categories" or one category
-export const ALL_CATEGORIES = "all categories";
-export const FILTER_OPTIONS = [ALL_CATEGORIES, ...Object.keys(CATEGORY_COLORS)];
-export const matchesFilter = (category: string, filter: string) => filter === ALL_CATEGORIES || category === filter;
-
-// Swatch for the filter: a wheel of every category color for "all", otherwise the category's
-export function filterSwatch(option: string): string {
-  if (option !== ALL_CATEGORIES) return categoryColor(option);
-  const colors = Object.values(CATEGORY_COLORS).map((n) => `var(--pal-${n})`);
-  return `conic-gradient(${colors.join(", ")}, ${colors[0]})`;
-}
+// Map filter: the categories toggled on in the filter menu. None toggled on shows everything.
+export const matchesFilter = (category: string, filter: ReadonlySet<string>) => filter.size === 0 || filter.has(category);
 
 // MapLibre can't read CSS variables, so the map gets plain hex values for the current theme:
 // a "match" expression from each post's category to its color.
