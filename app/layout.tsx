@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SettingsProvider } from "@/components/SettingsProvider";
+import { AuthProvider } from "@/components/AuthProvider";
 import { themeInitScript } from "@/lib/settings";
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="bg-bg text-fg antialiased">
-        <SettingsProvider>{children}</SettingsProvider>
+        <SettingsProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </SettingsProvider>
       </body>
     </html>
   );

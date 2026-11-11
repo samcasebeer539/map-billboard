@@ -12,9 +12,15 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`.
+   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`, `supabase/008_email_accounts.sql`.
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
+
+   - **Email sign-in:**
+     - **Authentication → Sign In / Providers → Email:** leave it enabled.
+     - **Authentication → URL Configuration:** set **Site URL** to where the app runs (e.g. `http://localhost:3000`) and add any other addresses you use (your Vercel URL, `http://192.168.x.x:3000`) to **Redirect URLs**. Email links land on `/settings`.
+     - **Optional, Authentication → Emails → Templates:** to get a typed code as well as a link, add `{{ .Token }}` to the **Magic Link** and **Change Email Address** templates. The app accepts either.
+     - Supabase's built-in email sender only delivers to your project's team members and is limited to a couple of emails per hour, which is fine for testing with your own address. For real users, connect a free SMTP provider (e.g. Resend) under **Authentication → Emails → SMTP Settings**.
 
 3. **Environment variables**
    ```bash
@@ -52,6 +58,10 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 - The share button copies a link (or opens the share sheet on phones) like `/?post=<id>&lat=..&lng=..`, which opens the map zoomed in with that card highlighted.
 - The flag button (`components/ReportDialog.tsx`) reports a post. It's hidden for the reporter right away and for everyone at 3 reports. Review reports in Supabase → Table Editor → `post_reports`.
 - Each person can have up to 10 active posts (enforced by a database trigger; expired and deleted posts don't count).
+
+**Accounts**
+- Everyone starts as a guest (an anonymous account in this browser). `components/AccountCard.tsx` in Settings lets them sign in with an email code or link (`lib/auth.ts`).
+- A guest who adds a new email keeps the same account. If the email already has an account, the guest's posts, saves and comments move into it on sign-in (one-time transfer token, `supabase/008_email_accounts.sql`).
 
 **Profile and settings**
 - `components/ProfileTabs.tsx`: switches between `MyPosts` (edit, delete, save counts) and `SavedPosts`.
