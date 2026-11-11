@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 // 20×20 line icons, drawn in the current text color
 const icon = (paths: ReactNode) => (
@@ -46,20 +46,29 @@ const LINKS = [
 export default function NavMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const rootRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape (clicks outside are caught by the backdrop below)
+  // Close on Escape or on a press anywhere outside the menu. The press still goes through
+  // to whatever was under it (e.g. the map), so you don't need an extra click to close first.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown, true);
+    };
   }, [open]);
 
   return (
-    <div className="relative">
-      {/* Invisible backdrop while open: a click outside the menu just closes it,
-          instead of also reaching the map and dropping a pin */}
-      {open && <div className="fixed inset-0" onClick={() => setOpen(false)} aria-hidden />}
+    <div ref={rootRef} className="relative">
+      {/* While open, an invisible 16px buffer around the button and the menu (below) swallows
+          near-misses, so they don't land on the map and drop a pin */}
+      {open && <div className="absolute -inset-4" aria-hidden />}
 
       <button
         type="button"
@@ -74,26 +83,29 @@ export default function NavMenu() {
       </button>
 
       {open && (
-        <nav className="floating absolute left-0 top-12 flex flex-col gap-1 rounded-lg p-1">
-          {LINKS.map((l) => {
-            const current = pathname === l.href;
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                aria-label={l.label}
-                title={l.label}
-                aria-current={current ? "page" : undefined}
-                className={`flex size-8 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
-                  current ? "bg-surface-2 text-accent" : "text-fg"
-                }`}
-              >
-                {l.icon}
-              </Link>
-            );
-          })}
-        </nav>
+        // p-4 is the transparent buffer; top-8 + p-4 keeps the menu 48px below the button's top
+        <div className="absolute -left-4 top-8 p-4">
+          <nav className="floating flex flex-col gap-1 rounded-lg p-1">
+            {LINKS.map((l) => {
+              const current = pathname === l.href;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  aria-label={l.label}
+                  title={l.label}
+                  aria-current={current ? "page" : undefined}
+                  className={`flex size-8 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
+                    current ? "bg-surface-2 text-accent" : "text-fg"
+                  }`}
+                >
+                  {l.icon}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       )}
     </div>
   );
