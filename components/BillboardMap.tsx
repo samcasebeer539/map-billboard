@@ -66,27 +66,29 @@ function nearestPostFeature(map: MlMap, point: { x: number; y: number }) {
 
 // Posts are loaded for more than the visible area, so cards don't vanish the moment their
 // dot leaves the screen and nearby posts are already there when you pan to them.
-const LOAD_MARGIN = 0.5; // extra area on every side, as a fraction of the screen size
-const CARD_MAX_HEIGHT = 480; // tallest card (320px photo + text) + lift: dots this far below the screen still show cards
+const LOAD_MARGIN = 0.5; // extra area on every side, as a fraction of the visible area
+const CARD_MAX_HEIGHT = 480; // tallest card (320px photo + text) + lift: dots this far off-screen still show cards
 
+// Works for flat, rotated and tilted maps. Screen points above the horizon (which a tilted
+// map's padding would reach) can't be turned back into map coordinates, so instead of padding
+// in screen pixels, take MapLibre's visible bounds and pad them in degrees.
 function paddedBounds(map: MlMap) {
+  const b = map.getBounds();
+  const lngPad = (b.getEast() - b.getWest()) * LOAD_MARGIN;
+  const latPad = (b.getNorth() - b.getSouth()) * LOAD_MARGIN;
+
+  // Cards hang above their dot, so also reach one card-height past the screen edge.
+  // Measured at the bottom of the screen (closest to the viewer, so always on the map).
   const { clientWidth: w, clientHeight: h } = map.getCanvas();
-  const padX = w * LOAD_MARGIN;
-  const padY = h * LOAD_MARGIN;
-  // Unproject all four padded corners so this also works when the map is rotated
-  const corners = [
-    [-padX, -padY],
-    [w + padX, -padY],
-    [w + padX, h + padY + CARD_MAX_HEIGHT],
-    [-padX, h + padY + CARD_MAX_HEIGHT],
-  ].map(([x, y]) => map.unproject([x, y]));
-  const lngs = corners.map((c) => c.lng);
-  const lats = corners.map((c) => c.lat);
+  const bottom = map.unproject([w / 2, h]);
+  const above = map.unproject([w / 2, Math.max(0, h - CARD_MAX_HEIGHT)]);
+  const cardPad = Math.abs(above.lat - bottom.lat) + Math.abs(above.lng - bottom.lng);
+
   return {
-    west: Math.max(-180, Math.min(...lngs)),
-    east: Math.min(180, Math.max(...lngs)),
-    south: Math.max(-85, Math.min(...lats)),
-    north: Math.min(85, Math.max(...lats)),
+    west: Math.max(-180, b.getWest() - lngPad - cardPad),
+    east: Math.min(180, b.getEast() + lngPad + cardPad),
+    south: Math.max(-85, b.getSouth() - latPad - cardPad),
+    north: Math.min(85, b.getNorth() + latPad + cardPad),
   };
 }
 
