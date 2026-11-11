@@ -37,7 +37,7 @@ export default function FeedPanel({
           <article
             key={p.id}
             onClick={() => onFocus(p)}
-            className={`-mx-1 cursor-pointer rounded-lg p-3 hover:bg-surface-2 ${p.id === focusedId ? "ring-2 ring-accent" : ""}`}
+            className={`card shrink-0 cursor-pointer p-3 ${p.id === focusedId ? "ring-2 ring-accent" : ""}`}
           >
             <PostContent
               post={p}

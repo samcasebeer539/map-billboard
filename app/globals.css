@@ -15,7 +15,8 @@
 
   --bg: #eceef2;        /* page background */
   --surface: #ffffff;   /* cards, panels, menus */
-  --surface-2: #eef0f3; /* inputs, hover states, quiet fills */
+  --fill: #eef0f3;      /* inputs, hover states, quiet fills (use as surface-2) */
+  --surface-2: var(--fill);
   --line: #d5d9e0;      /* switch track and other rare strokes */
   --fg: #14171c;        /* main text */
   --muted: #5c6470;     /* secondary text */
@@ -28,7 +29,8 @@
 .dark {
   --bg: #0d0f13;
   --surface: #171a20;
-  --surface-2: #232730;
+  --fill: #232730;
+  --surface-2: var(--fill);
   --line: #3a404c;
   --fg: #eceef2;
   --muted: #9ea6b3;
@@ -66,7 +68,20 @@
 }
 /* Anything layered over the map or page: menus, dropdowns, map cards */
 @utility floating {
-  @apply bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_20px_rgb(0_0_0/0.12)] dark:shadow-[0_1px_2px_rgb(0_0_0/0.4),0_8px_24px_rgb(0_0_0/0.5)];
+  @apply elevated bg-surface;
+}
+@utility elevated {
+  @apply shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_20px_rgb(0_0_0/0.12)] dark:shadow-[0_1px_2px_rgb(0_0_0/0.4),0_8px_24px_rgb(0_0_0/0.5)];
+}
+/* Side panels (post form, comments, feed) use the page background like Profile, with posts
+   as cards on it. Fills that normally sit on a card (inputs, hover states) would vanish
+   against the background, so in a panel they step up to the card color; inside a card or
+   menu within the panel they go back to normal. */
+.side-panel {
+  --surface-2: var(--surface);
+}
+.side-panel :is(.card, .floating) {
+  --surface-2: var(--fill);
 }
 @utility field-label {
   @apply mb-1.5 block text-xs text-muted;

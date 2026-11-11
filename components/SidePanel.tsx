@@ -19,7 +19,7 @@ export default function SidePanel({
   footer?: ReactNode;
   children: ReactNode;
 }) {
-  const className = "floating absolute inset-y-0 left-0 z-10 flex w-full flex-col sm:w-95";
+  const className = "side-panel elevated bg-bg absolute inset-y-0 left-0 z-10 flex w-full flex-col sm:w-95";
   const content = (
     <>
       <header className="flex items-start justify-between gap-4 px-4 pt-4">

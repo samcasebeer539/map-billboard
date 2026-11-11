@@ -48,6 +48,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
     <SidePanel
       title="New post"
       subtitle={<span className="tabular-nums">{formatCoords(location)}</span>}
+      onClose={onCancel}
       onSubmit={submit}
       footer={
         <div className="flex justify-end gap-2">
