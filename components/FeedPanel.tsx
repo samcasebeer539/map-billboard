@@ -11,6 +11,7 @@ export default function FeedPanel({
   origin,
   posts,
   radiusKm,
+  category,
   focusedId,
   onFocus,
   onClose,
@@ -19,6 +20,7 @@ export default function FeedPanel({
   origin: Post;
   posts: Post[] | null; // null while loading
   radiusKm: number;
+  category?: string; // the map's category filter, if one is set
   focusedId: string | null;
   onFocus: (p: Post) => void;
   onClose: () => void;
@@ -27,7 +29,7 @@ export default function FeedPanel({
   return (
     <SidePanel
       title="Nearby"
-      subtitle={posts ? `${posts.length} ${posts.length === 1 ? "post" : "posts"} within ${formatRadius(radiusKm)}, closest first` : "Loading…"}
+      subtitle={posts ? `${posts.length} ${category ? `${category} ` : ""}${posts.length === 1 ? "post" : "posts"} within ${formatRadius(radiusKm)}, closest first` : "Loading…"}
       onClose={onClose}
     >
       {posts?.map((p) => {

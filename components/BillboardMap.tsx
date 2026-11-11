@@ -24,6 +24,8 @@ import PostForm from "./PostForm";
 import NavMenu from "./NavMenu";
 import PostCard, { PostActions } from "./PostCard";
 import FeedPanel from "./FeedPanel";
+import Select from "./Select";
+import { ALL_CATEGORIES, FILTER_OPTIONS, filterSwatch, matchesFilter } from "@/lib/categories";
 import Lightbox, { LightboxImage } from "./Lightbox";
 import CommentsPanel from "./CommentsPanel";
 import ReportDialog from "./ReportDialog";
@@ -104,6 +106,9 @@ const FEED_MAX = 50;
 const PANEL_WIDTH = 380; // SidePanel on sm+ screens (w-95)
 const isPhone = () => window.matchMedia("(max-width: 639px)").matches; // SidePanel is full screen
 
+// The posts that pass the category filter: what the map's dots, groups and cards show
+const shownPosts = (posts: Post[], filter: string) => posts.filter((p) => matchesFilter(p.category, filter));
+
 const HOVER_Z = 10_000; // above any stacking value below
 
 // Overlapping cards: the one whose post sits lower on screen is in front (like objects
@@ -126,7 +131,8 @@ export default function BillboardMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const styleThemeRef = useRef<Theme | null>(null);
-  const postsRef = useRef<Post[]>([]);
+  const postsRef = useRef<Post[]>([]); // every post loaded, whatever the category filter
+  const filterRef = useRef(ALL_CATEGORIES);
   const loadIdRef = useRef(0); // ignores responses from older, slower requests
   const draftMarkerRef = useRef<Marker | null>(null);
   const cardsRef = useRef(new Map<string, CardEntry>());
@@ -143,6 +149,7 @@ export default function BillboardMap() {
   const [reporting, setReporting] = useState<Post | null>(null);
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [filter, setFilter] = useState(ALL_CATEGORIES);
   const { theme, accent, ready } = useSettings();
   const closeLightbox = useCallback(() => setLightbox(null), []);
   const closeToast = useCallback(() => setToast(null), []);
@@ -282,7 +289,7 @@ export default function BillboardMap() {
   const syncCards = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    const open = map.getZoom() >= CARD_ZOOM ? postsRef.current : [];
+    const open = map.getZoom() >= CARD_ZOOM ? shownPosts(postsRef.current, filterRef.current) : [];
     const openIds = new Set(open.map((p) => p.id));
     const cards = cardsRef.current;
 
@@ -331,6 +338,12 @@ export default function BillboardMap() {
     }
   }, []);
 
+  // Redraw dots, groups and cards from the loaded posts and the current filter
+  const showPosts = useCallback(() => {
+    (mapRef.current?.getSource(SOURCE) as GeoJSONSource | undefined)?.setData(toGeoJSON(shownPosts(postsRef.current, filterRef.current)));
+    syncCards();
+  }, [syncCards]);
+
   const loadPosts = useCallback(async () => {
     const map = mapRef.current;
     if (!map) return;
@@ -338,9 +351,8 @@ export default function BillboardMap() {
     const posts = await fetchPostsInView(paddedBounds(map));
     if (loadId !== loadIdRef.current) return; // the map moved again while this was loading
     postsRef.current = posts;
-    (map.getSource(SOURCE) as GeoJSONSource | undefined)?.setData(toGeoJSON(posts));
-    syncCards();
-  }, [syncCards]);
+    showPosts();
+  }, [showPosts]);
 
   // Create the map once
   useEffect(() => {
@@ -369,7 +381,7 @@ export default function BillboardMap() {
     // so they're (re)added every time a style finishes loading.
     map.on("style.load", () => {
       if (map.getSource(SOURCE)) return;
-      addPostLayers(map, postsRef.current);
+      addPostLayers(map, shownPosts(postsRef.current, filterRef.current));
       syncCards();
     });
 
@@ -451,10 +463,26 @@ export default function BillboardMap() {
           so they can never cover the menu, post form or photo viewer */}
       <div ref={containerRef} className="isolate h-full w-full" />
 
-      {/* Menu button: top-left; slides beside the post form (sm+) or hides behind it on phones.
+      {/* Menu button and category filter: top-left; slides beside the post form (sm+) or hides behind it on phones.
           left-99 = the form's 380px width + 16px gap */}
       <div className={`absolute top-4 z-20 transition-[left] duration-200 ${draft || feed || commentsPost ? "left-4 max-sm:hidden sm:left-99" : "left-4"}`}>
-        <NavMenu />
+        <div className="flex items-start gap-2">
+          <NavMenu />
+          <div className="w-44">
+            <Select
+              value={filter}
+              options={FILTER_OPTIONS}
+              onChange={(v) => {
+                filterRef.current = v;
+                setFilter(v);
+                showPosts();
+              }}
+              swatch={filterSwatch}
+              floating
+              ariaLabel="Show category"
+            />
+          </div>
+        </div>
       </div>
 
       {draft && (
@@ -471,8 +499,9 @@ export default function BillboardMap() {
       {feed && (
         <FeedPanel
           origin={feed.origin}
-          posts={feed.posts}
+          posts={feed.posts && feed.posts.filter((p) => p.id === feed.origin.id || matchesFilter(p.category, filter))}
           radiusKm={FEED_RADIUS_KM}
+          category={filter === ALL_CATEGORIES ? undefined : filter}
           focusedId={focusedId}
           onFocus={focusPost}
           onClose={closeFeed}
@@ -495,8 +524,7 @@ export default function BillboardMap() {
         onReported={(p) => {
           // Hide it for this person straight away (the server does the same from now on)
           postsRef.current = postsRef.current.filter((x) => x.id !== p.id);
-          (mapRef.current?.getSource(SOURCE) as GeoJSONSource | undefined)?.setData(toGeoJSON(postsRef.current));
-          syncCards();
+          showPosts();
           if (commentsPost?.id === p.id) setCommentsPost(null);
           if (feed?.origin.id === p.id) closeFeed();
           else setFeed((f) => f && { ...f, posts: f.posts?.filter((x) => x.id !== p.id) ?? null });
