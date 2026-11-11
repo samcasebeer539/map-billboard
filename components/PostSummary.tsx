@@ -67,10 +67,11 @@ export default function PostSummary({
         />
       </div>
 
-      <div className="mt-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+      {/* Meta line, then the actions on their own row, left-aligned */}
+      <div className="mt-4 flex flex-col items-start gap-2">
         <span className="text-xs text-muted">{meta}</span>
         {/* Negative margin lines the buttons' text up with the content edge (buttons have 12px padding) */}
-        <div className="-ml-3 flex gap-1 sm:-mr-3 sm:ml-0">{actions}</div>
+        <div className="-ml-3 flex flex-wrap gap-1">{actions}</div>
       </div>
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">

@@ -53,8 +53,8 @@
 /* ------------------------------------------------------------------
    Text styles (two weights: regular and medium):
      Title   text-lg font-medium   page and panel titles
-     Strong  text-sm font-medium   post titles, buttons, tabs, menu items, setting names
-     Body    text-sm               post text, messages, dropdown options
+     Strong  text-sm font-medium   post titles, buttons, tabs, menu items
+     Body    text-sm               post text, messages, dropdown options, setting and switch labels
      Small   text-xs               labels, dates, categories, counts
    Colors: text-fg, text-muted, text-accent, text-danger.
    Exception: text inputs are text-base on phones to stop iOS zoom-on-focus.

@@ -13,14 +13,14 @@ export default function SettingsForm() {
       {/* Light / dark */}
       <div className="flex items-center justify-between gap-4 p-4">
         <div>
-          <div className="text-sm font-medium">Dark mode</div>
+          <div className="text-sm">Dark mode</div>
         </div>
         <Switch checked={dark} onChange={(on) => setTheme(on ? "dark" : "light")} label="Dark mode" />
       </div>
 
       {/* Accent color */}
       <div className="p-4">
-        <div className="text-sm font-medium">Accent color</div>
+        <div className="text-sm">Accent color</div>
         <div className="mt-3 flex flex-wrap gap-3" role="radiogroup" aria-label="Accent color">
           {(Object.keys(ACCENTS) as Accent[]).map((name) => (
             <button
