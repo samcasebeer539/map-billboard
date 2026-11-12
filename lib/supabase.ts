@@ -34,6 +34,7 @@ export type Post = {
 
 export type Comment = {
   id: string;
+  parent_id?: string | null; // the comment this replies to (null/missing for top-level comments)
   body: string;
   created_at: string;
   mine: boolean;
@@ -287,10 +288,14 @@ export async function fetchComments(postId: string): Promise<{ comments: Comment
   return { comments: (data as Comment[]) ?? [], error: error?.message ?? null };
 }
 
-export async function addComment(postId: string, body: string): Promise<string | null> {
+export async function addComment(postId: string, body: string, parentId?: string): Promise<string | null> {
   const { db, error: authError } = await signedIn();
   if (!db) return authError;
-  const { error } = await db.from("post_comments").insert({ post_id: postId, body });
+  // Top-level comments leave parent_id out entirely, so they still work before 010 is run
+  const row: Record<string, string> = { post_id: postId, body };
+  if (parentId) row.parent_id = parentId;
+  const { error } = await db.from("post_comments").insert(row);
+  if (error?.message.includes("parent_id")) return "Replies aren't set up yet (run supabase/010_comment_replies.sql).";
   return error?.message ?? null;
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import SidePanel from "./SidePanel";
 import { addComment, COMMENT_MAX, Comment, deleteComment, fetchComments, Post } from "@/lib/supabase";
 
@@ -13,6 +13,13 @@ function author(c: Comment) {
   if (c.mine) return "You";
   if (c.by_poster) return "Poster";
   return "Anonymous";
+}
+
+// Comments with their replies underneath (one level: a reply to a reply joins the same thread)
+function threads(comments: Comment[]) {
+  const ids = new Set(comments.map((c) => c.id));
+  const isTop = (c: Comment) => !c.parent_id || !ids.has(c.parent_id);
+  return comments.filter(isTop).map((top) => ({ top, replies: comments.filter((c) => !isTop(c) && c.parent_id === top.id) }));
 }
 
 // Comment thread for one post, in the same side panel as the post form.
@@ -30,6 +37,8 @@ export default function CommentsPanel({
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const load = useCallback(async () => {
     const res = await fetchComments(post.id);
@@ -49,19 +58,54 @@ export default function CommentsPanel({
     if (!draft.trim()) return;
     setBusy(true);
     setError(null);
-    const err = await addComment(post.id, draft.trim());
+    const err = await addComment(post.id, draft.trim(), replyTo?.id);
     setBusy(false);
     if (err) return setError(err);
     setDraft("");
+    setReplyTo(null);
     load();
   }
 
-  async function remove(c: Comment) {
-    if (!window.confirm("Delete this comment?")) return;
+  function reply(c: Comment) {
+    setReplyTo(c);
+    textareaRef.current?.focus();
+  }
+
+  async function remove(c: Comment, replyCount: number) {
+    const msg = replyCount
+      ? `Delete this comment and its ${replyCount} ${replyCount === 1 ? "reply" : "replies"}?`
+      : "Delete this comment?";
+    if (!window.confirm(msg)) return;
     const err = await deleteComment(c.id);
     if (err) return setError(err);
+    if (replyTo && (replyTo.id === c.id || replyTo.parent_id === c.id)) setReplyTo(null);
     load();
   }
+
+  const item = (c: Comment, replyCount = 0) => (
+    <article key={c.id}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={`text-xs ${c.by_poster ? "text-accent" : "text-muted"}`}>
+          {author(c)} · {fmtTime(c.created_at)}
+        </span>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => reply(c)}
+            className={`text-xs hover:text-fg ${replyTo?.id === c.id ? "text-accent" : "text-muted"}`}
+          >
+            Reply
+          </button>
+          {c.can_delete && (
+            <button type="button" onClick={() => remove(c, replyCount)} className="text-xs text-muted hover:text-danger">
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{c.body}</p>
+    </article>
+  );
 
   const count = comments?.length ?? post.comment_count;
 
@@ -72,10 +116,21 @@ export default function CommentsPanel({
       onClose={onClose}
       footer={
         <form onSubmit={submit} className="flex flex-col gap-2">
+          {replyTo && (
+            <div className="flex items-center justify-between gap-2 text-xs text-muted">
+              <span className="min-w-0 truncate">
+                Replying to <span className={replyTo.by_poster ? "text-accent" : "text-fg"}>{author(replyTo)}</span>: {replyTo.body}
+              </span>
+              <button type="button" onClick={() => setReplyTo(null)} className="shrink-0 hover:text-fg">
+                Cancel reply
+              </button>
+            </div>
+          )}
           <label htmlFor="comment-body" className="sr-only">
-            Add a comment
+            {replyTo ? "Write a reply" : "Add a comment"}
           </label>
           <textarea
+            ref={textareaRef}
             id="comment-body"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -84,11 +139,14 @@ export default function CommentsPanel({
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 e.currentTarget.form?.requestSubmit();
+              } else if (e.key === "Escape" && replyTo) {
+                e.preventDefault();
+                setReplyTo(null);
               }
             }}
             maxLength={COMMENT_MAX}
             rows={2}
-            placeholder="Add a comment"
+            placeholder={replyTo ? "Write a reply" : "Add a comment"}
             className="input resize-none"
           />
           <div className="flex items-center justify-between">
@@ -100,7 +158,7 @@ export default function CommentsPanel({
                 Cancel
               </button>
               <button type="submit" disabled={busy || !draft.trim()} className="btn-primary">
-                {busy ? "Sending…" : "Comment"}
+                {busy ? "Sending…" : replyTo ? "Reply" : "Comment"}
               </button>
             </div>
           </div>
@@ -110,21 +168,16 @@ export default function CommentsPanel({
       {comments === null && <p className="text-sm text-muted">Loading…</p>}
       {comments?.length === 0 && <p className="text-sm text-muted">No comments yet. Start the conversation.</p>}
 
-      {comments?.map((c) => (
-        <article key={c.id}>
-          <div className="flex items-center justify-between gap-2">
-            <span className={`text-xs ${c.by_poster ? "text-accent" : "text-muted"}`}>
-              {author(c)} · {fmtTime(c.created_at)}
-            </span>
-            {c.can_delete && (
-              <button type="button" onClick={() => remove(c)} className="text-xs text-muted hover:text-danger">
-                Delete
-              </button>
+      {comments &&
+        threads(comments).map(({ top, replies }) => (
+          <div key={top.id}>
+            {item(top, replies.length)}
+            {replies.length > 0 && (
+              // Replies sit indented under the comment they answer
+              <div className="mt-3 flex flex-col gap-3 pl-4">{replies.map((r) => item(r))}</div>
             )}
           </div>
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm">{c.body}</p>
-        </article>
-      ))}
+        ))}
 
       {error && (
         <p role="alert" className="text-sm text-danger">
