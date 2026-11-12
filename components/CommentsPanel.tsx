@@ -7,13 +7,16 @@ import { addComment, COMMENT_MAX, Comment, deleteComment, fetchComments, Post } 
 const fmtTime = (d: string) =>
   new Date(d).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-// Who wrote a comment, without revealing accounts: "You", "Poster", or "Anonymous"
+// Who wrote a comment, without revealing accounts: "You", "Poster", or "Anonymous 1, 2, ..."
+// (numbered per post by the server, so you can tell commenters apart)
 function author(c: Comment) {
   if (c.mine && c.by_poster) return "You (poster)";
   if (c.mine) return "You";
   if (c.by_poster) return "Poster";
-  return "Anonymous";
+  return c.author_no ? `Anonymous ${c.author_no}` : "Anonymous";
 }
+
+const HIGHLIGHT_MS = 1200;
 
 // Comments with their replies underneath (one level: a reply to a reply joins the same thread)
 function threads(comments: Comment[]) {
@@ -39,6 +42,19 @@ export default function CommentsPanel({
   const [error, setError] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const byId = new Map((comments ?? []).map((c) => [c.id, c]));
+
+  // Clicking a reply's quote line: scroll to the comment it answers and flash it
+  function jumpTo(id: string) {
+    document.getElementById(`comment-${id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    setFlashId(id);
+  }
+  useEffect(() => {
+    if (!flashId) return;
+    const t = setTimeout(() => setFlashId(null), HIGHLIGHT_MS);
+    return () => clearTimeout(t);
+  }, [flashId]);
 
   const load = useCallback(async () => {
     const res = await fetchComments(post.id);
@@ -82,30 +98,52 @@ export default function CommentsPanel({
     load();
   }
 
-  const item = (c: Comment, replyCount = 0) => (
-    <article key={c.id}>
-      <div className="flex items-center justify-between gap-2">
-        <span className={`text-xs ${c.by_poster ? "text-accent" : "text-muted"}`}>
-          {author(c)} · {fmtTime(c.created_at)}
-        </span>
-        <div className="flex gap-3">
+  const item = (c: Comment, replyCount = 0) => {
+    const answers = c.reply_to_id ? byId.get(c.reply_to_id) : undefined;
+    return (
+      <article
+        key={c.id}
+        id={`comment-${c.id}`}
+        className={`-mx-2 rounded-md px-2 transition-colors duration-500 ${flashId === c.id ? "bg-surface" : ""}`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className={`text-xs ${c.by_poster ? "text-accent" : "text-muted"}`}>
+            {author(c)} · {fmtTime(c.created_at)}
+          </span>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => reply(c)}
+              className={`text-xs hover:text-fg ${replyTo?.id === c.id ? "text-accent" : "text-muted"}`}
+            >
+              Reply
+            </button>
+            {c.can_delete && (
+              <button type="button" onClick={() => remove(c, replyCount)} className="text-xs text-muted hover:text-danger">
+                Delete
+              </button>
+            )}
+          </div>
+        </div>
+        {answers && (
+          // A reply to a reply: which one it answers (replies to the top comment don't need this)
           <button
             type="button"
-            onClick={() => reply(c)}
-            className={`text-xs hover:text-fg ${replyTo?.id === c.id ? "text-accent" : "text-muted"}`}
+            onClick={() => jumpTo(answers.id)}
+            className="mt-1 flex w-full min-w-0 items-center gap-1 text-left text-xs text-muted hover:text-fg"
           >
-            Reply
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden>
+              <path d="M2 2.5v3a2 2 0 0 0 2 2h6M7.5 5 10 7.5 7.5 10" />
+            </svg>
+            <span className="truncate">
+              <span className={answers.by_poster ? "text-accent" : ""}>{author(answers)}</span>: {answers.body}
+            </span>
           </button>
-          {c.can_delete && (
-            <button type="button" onClick={() => remove(c, replyCount)} className="text-xs text-muted hover:text-danger">
-              Delete
-            </button>
-          )}
-        </div>
-      </div>
-      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{c.body}</p>
-    </article>
-  );
+        )}
+        <p className="mt-1 whitespace-pre-wrap break-words text-sm">{c.body}</p>
+      </article>
+    );
+  };
 
   const count = comments?.length ?? post.comment_count;
 

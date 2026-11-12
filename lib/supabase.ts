@@ -34,7 +34,9 @@ export type Post = {
 
 export type Comment = {
   id: string;
-  parent_id?: string | null; // the comment this replies to (null/missing for top-level comments)
+  parent_id?: string | null; // the thread's top comment (null/missing for top-level comments)
+  reply_to_id?: string | null; // the reply this answers, when answering a reply rather than the top comment
+  author_no?: number | null; // "Anonymous 1, 2, ..." per post, in order of first comment (null for the poster)
   body: string;
   created_at: string;
   mine: boolean;
