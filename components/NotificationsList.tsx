@@ -58,23 +58,25 @@ export default function NotificationsList() {
 
 function Row({ n }: { n: Notification }) {
   const linked = n.post_live && n.comments_enabled;
+  // Same order as the other cards: category (and badges), headline, text, then the time
   const content = (
     <>
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 text-sm">
-          <span className={n.by_poster ? "text-accent" : ""}>{who(n)}</span>
-          <span className="text-muted">{n.kind === "reply" ? " replied to your comment on " : " commented on your post "}</span>
-          <span className="font-medium">{n.post_title}</span>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 text-xs text-muted">
-          {n.unread && (
-            <span className="flex items-center gap-1.5 text-accent">
-              <span aria-hidden className="size-2 rounded-full bg-accent" />
-              New
-            </span>
-          )}
-          <span>{ago(n.created_at)}</span>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+        <span className="uppercase tracking-wide" style={{ color: categoryColor(n.post_category) }}>
+          {n.post_category}
+        </span>
+        {n.unread && (
+          <span className="flex items-center gap-1.5 text-accent">
+            <span aria-hidden className="size-2 rounded-full bg-accent" />
+            New
+          </span>
+        )}
+        {!linked && <span className="rounded-full bg-surface-2 px-2 py-0.5">No longer on the map</span>}
+      </div>
+      <div className="mt-1 text-sm">
+        <span className={n.by_poster ? "text-accent" : ""}>{who(n)}</span>
+        <span className="text-muted">{n.kind === "reply" ? " replied to your comment on " : " commented on your post "}</span>
+        <span className="font-medium">{n.post_title}</span>
       </div>
       {n.your_comment && (
         // What they replied to
@@ -83,12 +85,7 @@ function Row({ n }: { n: Notification }) {
         </p>
       )}
       <p className="mt-1 whitespace-pre-wrap break-words text-sm">{n.body}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-        <span className="uppercase tracking-wide" style={{ color: categoryColor(n.post_category) }}>
-          {n.post_category}
-        </span>
-        {!linked && <span className="rounded-full bg-surface-2 px-2 py-0.5">No longer on the map</span>}
-      </div>
+      <div className="mt-2 text-xs text-muted">{ago(n.created_at)}</div>
     </>
   );
 

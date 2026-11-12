@@ -57,14 +57,11 @@ export function toGeoJSON(posts: Post[]): GeoJSON.FeatureCollection {
 // Colors come from the same tokens as the rest of the UI, for the current theme.
 export function applyPinColors(map: MlMap) {
   const accent = cssToken("--accent");
-  const stroke = cssToken("--surface");
   if (map.getLayer(CLUSTER_LAYER)) {
     map.setPaintProperty(CLUSTER_LAYER, "circle-color", accent);
-    map.setPaintProperty(CLUSTER_LAYER, "circle-stroke-color", stroke);
   }
   if (map.getLayer(DOT_LAYER)) {
     map.setPaintProperty(DOT_LAYER, "circle-color", categoryColorExpression(appliedTheme(), accent) as ExpressionSpecification);
-    map.setPaintProperty(DOT_LAYER, "circle-stroke-color", stroke);
   }
   if (map.getLayer(CLUSTER_COUNT_LAYER)) {
     map.setPaintProperty(CLUSTER_COUNT_LAYER, "text-color", cssToken("--on-accent"));
@@ -89,7 +86,6 @@ export function addPostLayers(map: MlMap, posts: Post[]) {
     filter: ["has", "point_count"],
     paint: {
       "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 50, 26],
-      "circle-stroke-width": 3,
     },
   });
   map.addLayer({
@@ -110,7 +106,7 @@ export function addPostLayers(map: MlMap, posts: Post[]) {
     type: "circle",
     source: SOURCE,
     filter: ["!", ["has", "point_count"]],
-    paint: { "circle-radius": 8, "circle-stroke-width": 2 },
+    paint: { "circle-radius": 8 },
   });
   applyPinColors(map);
 }

@@ -175,6 +175,17 @@ body {
   background: var(--surface);
   transform: rotate(45deg);
 }
+/* Highlighted card: its accent ring continues down the two outer sides of the triangle.
+   The triangle sits on top of the card, so it also hides the ring along the card's
+   bottom edge where the two meet. */
+.card-tip-ring {
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  /* Trim the part above the card's bottom edge, so the triangle's sides start exactly at
+     the ring instead of poking up past it. (The triangle's middle sits 1px above the card
+     edge; 11.8% = 1px × √2 along the 12px square's diagonal.) */
+  clip-path: polygon(100% 11.8%, 100% 100%, 11.8% 100%);
+}
 
 html {
   scrollbar-width: none; /* Firefox, and Chrome/Edge 121+ */

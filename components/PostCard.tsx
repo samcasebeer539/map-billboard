@@ -32,7 +32,7 @@ export default function PostCard({ post, highlighted, onOpen, ...actions }: Prop
       >
         <PostContent post={post} {...actions} />
       </div>
-      <div className="card-tip" />
+      <div className={`card-tip ${highlighted ? "card-tip-ring" : ""}`} />
     </div>
   );
 }
