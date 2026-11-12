@@ -16,11 +16,11 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
-   - **Email sign-in:**
-     - **Authentication → Sign In / Providers → Email:** leave it enabled.
-     - **Authentication → URL Configuration:** set **Site URL** to where the app runs (e.g. `http://localhost:3000`) and add any other addresses you use (your Vercel URL, `http://192.168.x.x:3000`) to **Redirect URLs**. Email links land on `/settings`.
-     - **Optional, Authentication → Emails → Templates:** to get a typed code as well as a link, add `{{ .Token }}` to the **Magic Link** and **Change Email Address** templates. The app accepts either.
-     - Supabase's built-in email sender only delivers to your project's team members and is limited to a couple of emails per hour, which is fine for testing with your own address. For real users, connect a free SMTP provider (e.g. Resend) under **Authentication → Emails → SMTP Settings**.
+   - **Email + password accounts:**
+     - **Authentication → Sign In / Providers → Email:** leave it enabled. For a demo, turn **Confirm email** off: creating an account and signing in then need no email at all. (Left on, new accounts get a confirmation link first.)
+     - Same page: set **Minimum password length** to 8 to match the app.
+     - **Authentication → URL Configuration:** set **Site URL** to where the app runs (e.g. `http://localhost:3000`) and add any other addresses you use (your Vercel URL, `http://192.168.x.x:3000`) to **Redirect URLs**. Confirmation and password reset links land on `/settings`.
+     - **Forgot password** always sends an email. Supabase's built-in sender only delivers to your project's team members and allows a couple of emails per hour, fine for testing with your own address. For real users, connect a free SMTP provider (e.g. Resend) under **Authentication → Emails → SMTP Settings**.
 
 3. **Environment variables**
    ```bash
@@ -63,9 +63,9 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 - Each person can have up to 10 active posts (enforced by a database trigger; expired and deleted posts don't count).
 
 **Accounts**
-- Everyone starts as a guest (an anonymous account in this browser). `components/AccountCard.tsx` in Settings lets them sign in with an email code or link (`lib/auth.ts`).
+- Everyone starts as a guest (an anonymous account in this browser). `components/AccountCard.tsx` in Settings lets them sign in or create an account with email + password, reset a forgotten password (emailed link), and change it while signed in (`lib/auth.ts`).
 - Search (beside the menu button) finds places with [Photon](https://photon.komoot.io), a free OpenStreetMap geocoder (no key, fair use: typing is debounced), or post text with `search_posts` (`supabase/009_search.sql`): posts containing every word, closest to the map's center first. Before 009 is run, post search falls back to the posts already loaded around the map.
-- A guest who adds a new email keeps the same account. If the email already has an account, the guest's posts, saves and comments move into it on sign-in (one-time transfer token, `supabase/008_email_accounts.sql`).
+- Signing in or creating an account moves the guest's posts, saves and comments into the account (one-time transfer token, `supabase/008_email_accounts.sql`). Supabase only lets a guest add a password after verifying their email, so instead of upgrading the guest in place, the app switches to the account and transfers the guest's things, which needs no email.
 
 **Profile and settings**
 - `components/ProfileTabs.tsx`: switches between `MyPosts` (edit, delete, save counts) and `SavedPosts`.
@@ -81,8 +81,6 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 
 ## Ideas for next steps
 
-- Email sign-in (Supabase magic links) so posts follow you across devices
 - More than one photo per post
-- Category filters and colored pins
 - Realtime updates with Supabase Realtime
 - Report button and rate limiting / Cloudflare Turnstile before going public

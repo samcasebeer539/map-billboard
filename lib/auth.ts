@@ -1,79 +1,91 @@
-// Email sign-in on top of guest accounts.
+// Email + password accounts on top of guest accounts.
 //
-// Everyone starts as a guest (an anonymous Supabase account created the first time
-// they post or save). Signing in with email works one of two ways:
-//  * "upgrade": the guest adds an email to their current account. Same account,
-//    so their posts and saves simply stay put.
-//  * "signin": the email already has an account (or there's no guest yet). The guest
-//    first gets a one-time transfer token; after signing in, the token moves their
-//    posts, saves and comments into the email account (supabase/008_email_accounts.sql).
+// Everyone starts as a guest (an anonymous Supabase account created the first time they
+// post or save). Creating an account or signing in switches to an email + password account;
+// just before that, the guest gets a one-time transfer token, and right after, the token
+// moves the guest's posts, saves and comments into the account (supabase/008_email_accounts.sql).
 //
-// Supabase emails either a code or a link depending on the email template, so both work:
-// type the code into the app, or open the link (which lands on /settings and signs in).
+// No email is needed to create an account or sign in when "Confirm email" is off in Supabase.
+// If it's on, new accounts get a confirmation link (it lands on /settings, signed in), and the
+// transfer finishes then. Password resets always send an email.
 
 import { supabase } from "./supabase";
 
-export type SignInMode = "upgrade" | "signin";
-
 const TRANSFER_KEY = "mb-guest-transfer"; // pending transfer token, kept until claimed
 const NOT_CONFIGURED = "Supabase isn't configured yet. See the README.";
+export const PASSWORD_MIN = 8;
 
 const redirectTo = () => `${window.location.origin}/settings`;
 
-function isEmailTaken(error: { code?: string; message: string }) {
-  return error.code === "email_exists" || /already (been )?registered|already exists/i.test(error.message);
+type AuthError = { code?: string; message: string; status?: number };
+
+function friendly(error: AuthError) {
+  switch (error.code) {
+    case "invalid_credentials":
+      return "Wrong email or password.";
+    case "email_not_confirmed":
+      return "Confirm your email first: open the link we sent you.";
+    case "user_already_exists":
+    case "email_exists":
+      return "That email already has an account. Sign in instead.";
+    case "weak_password":
+      return error.message || `Use at least ${PASSWORD_MIN} characters.`;
+    case "same_password":
+      return "That's your current password. Pick a new one.";
+    case "over_email_send_rate_limit":
+    case "over_request_rate_limit":
+      return "Too many attempts. Wait a minute and try again.";
+  }
+  return error.message;
 }
 
-// Step 1: send a sign-in code/link to the email
-export async function startEmailSignIn(
-  email: string
-): Promise<{ mode: SignInMode; existingAccount: boolean; error: null } | { error: string }> {
-  if (!supabase) return { error: NOT_CONFIGURED };
+// If this browser is a guest, remember it so its posts can move into the account after
+// signing in. Never blocks signing in: worst case the guest's posts stay with the guest.
+async function prepareGuestTransfer() {
+  if (!supabase) return;
   const { data } = await supabase.auth.getSession();
-  const isGuest = data.session?.user.is_anonymous ?? false;
-  let existingAccount = false;
-
-  if (isGuest) {
-    const { error } = await supabase.auth.updateUser({ email }, { emailRedirectTo: redirectTo() });
-    if (!error) return { mode: "upgrade", existingAccount: false, error: null };
-    if (!isEmailTaken(error)) return { error: error.message };
-
-    // The email belongs to another account: remember this guest so its posts can move over
-    existingAccount = true;
-    const { data: token, error: tokenError } = await supabase.rpc("create_guest_transfer");
-    if (tokenError) return { error: tokenError.message };
-    try {
-      localStorage.setItem(TRANSFER_KEY, token as string);
-    } catch {}
-  }
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: redirectTo(), shouldCreateUser: true },
-  });
-  if (error) return { error: error.message };
-  return { mode: "signin", existingAccount, error: null };
+  if (!data.session?.user.is_anonymous) return;
+  const { data: token, error } = await supabase.rpc("create_guest_transfer");
+  if (error) return console.error("Couldn't prepare guest transfer:", error.message);
+  try {
+    localStorage.setItem(TRANSFER_KEY, token as string);
+  } catch {}
 }
 
-// Step 2: check the code from the email. Returns how many guest posts were moved (if any).
-export async function verifyEmailCode(
-  email: string,
-  code: string,
-  mode: SignInMode
-): Promise<{ moved: number; error: string | null }> {
-  if (!supabase) return { moved: 0, error: NOT_CONFIGURED };
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token: code.trim(),
-    type: mode === "upgrade" ? "email_change" : "email",
-  });
-  if (error) {
-    return {
-      moved: 0,
-      error: /expired|invalid/i.test(error.message) ? "That code is wrong or has expired. Try again or resend it." : error.message,
-    };
-  }
-  return { moved: await claimPendingTransfer(), error: null };
+export type AuthResult = { error: string } | { error: null; moved: number; needsConfirmation?: boolean };
+
+export async function signInWithPassword(email: string, password: string): Promise<AuthResult> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  await prepareGuestTransfer();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: friendly(error) };
+  return { error: null, moved: await claimPendingTransfer() };
+}
+
+export async function createAccount(email: string, password: string): Promise<AuthResult> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  await prepareGuestTransfer();
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo() } });
+  if (error) return { error: friendly(error) };
+  // With "Confirm email" on, Supabase doesn't reveal whether an email is taken: it returns
+  // a user with no identities instead of an error
+  if (data.user && data.user.identities?.length === 0) return { error: friendly({ code: "user_already_exists", message: "" }) };
+  if (!data.session) return { error: null, moved: 0, needsConfirmation: true };
+  return { error: null, moved: await claimPendingTransfer() };
+}
+
+// Emails a link that lands on /settings, where AccountCard asks for a new password
+export async function sendPasswordReset(email: string): Promise<string | null> {
+  if (!supabase) return NOT_CONFIGURED;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectTo() });
+  return error ? friendly(error) : null;
+}
+
+// After a reset link, or to change the password while signed in
+export async function setPassword(password: string): Promise<string | null> {
+  if (!supabase) return NOT_CONFIGURED;
+  const { error } = await supabase.auth.updateUser({ password });
+  return error ? friendly(error) : null;
 }
 
 // Moves a remembered guest's posts into the signed-in email account. Safe to call any time:

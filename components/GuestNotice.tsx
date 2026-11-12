@@ -11,7 +11,7 @@ export default function GuestNotice() {
     <p className="text-sm text-muted">
       You&apos;re using a guest account, so your posts and saves only live in this browser.{" "}
       <Link href="/settings" className="link">
-        Sign in with email
+        Sign in or create an account
       </Link>{" "}
       to keep them on any device.
     </p>
