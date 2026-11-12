@@ -3,22 +3,25 @@
 import { KeyboardEvent, useCallback, useRef, useState } from "react";
 import MyPosts from "./MyPosts";
 import SavedPosts from "./SavedPosts";
+import MyComments from "./MyComments";
 
 const TABS = [
   { id: "mine", label: "Your posts" },
   { id: "saved", label: "Saved" },
+  { id: "comments", label: "Comments" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
-// Toggle between your posts and saved posts. Both lists stay mounted (just hidden),
+// Toggle between your posts, saved posts and your comments. All lists stay mounted (just hidden),
 // so counts load up front and switching is instant.
 export default function ProfileTabs() {
   const [tab, setTab] = useState<TabId>("mine");
-  const [counts, setCounts] = useState<Record<TabId, number | null>>({ mine: null, saved: null });
-  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({ mine: null, saved: null });
+  const [counts, setCounts] = useState<Record<TabId, number | null>>({ mine: null, saved: null, comments: null });
+  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({ mine: null, saved: null, comments: null });
 
   const setMineCount = useCallback((n: number) => setCounts((c) => ({ ...c, mine: n })), []);
   const setSavedCount = useCallback((n: number) => setCounts((c) => ({ ...c, saved: n })), []);
+  const setCommentsCount = useCallback((n: number) => setCounts((c) => ({ ...c, comments: n })), []);
 
   // Left/Right arrows move between tabs (standard tablist keyboard behavior)
   function onKeyDown(e: KeyboardEvent) {
@@ -32,7 +35,7 @@ export default function ProfileTabs() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="tablist" aria-label="Profile posts" onKeyDown={onKeyDown} className="flex gap-1 self-start">
+      <div role="tablist" aria-label="Profile" onKeyDown={onKeyDown} className="flex gap-1 self-start">
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
@@ -64,6 +67,9 @@ export default function ProfileTabs() {
       </div>
       <div id="panel-saved" role="tabpanel" aria-labelledby="tab-saved" hidden={tab !== "saved"}>
         <SavedPosts onCount={setSavedCount} />
+      </div>
+      <div id="panel-comments" role="tabpanel" aria-labelledby="tab-comments" hidden={tab !== "comments"}>
+        <MyComments onCount={setCommentsCount} />
       </div>
     </div>
   );

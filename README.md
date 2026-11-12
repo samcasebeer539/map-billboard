@@ -12,7 +12,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`, `supabase/008_email_accounts.sql`, `supabase/009_search.sql`, `supabase/010_comment_replies.sql`, `supabase/011_reply_to_and_names.sql`.
+   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`, `supabase/008_email_accounts.sql`, `supabase/009_search.sql`, `supabase/010_comment_replies.sql`, `supabase/011_reply_to_and_names.sql`, `supabase/012_my_comments.sql`.
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
@@ -68,7 +68,7 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 - Signing in or creating an account moves the guest's posts, saves and comments into the account (one-time transfer token, `supabase/008_email_accounts.sql`). Supabase only lets a guest add a password after verifying their email, so instead of upgrading the guest in place, the app switches to the account and transfers the guest's things, which needs no email.
 
 **Profile and settings**
-- `components/ProfileTabs.tsx`: switches between `MyPosts` (edit, delete, save counts) and `SavedPosts`.
+- `components/ProfileTabs.tsx`: switches between `MyPosts` (edit, delete, save counts), `SavedPosts` and `MyComments` (your comments and replies, from `my_comments` in `supabase/012_my_comments.sql`; "View on map" opens the post with its comments showing).
 - `components/SettingsForm.tsx`: dark mode and accent color, stored in the browser (`lib/settings.ts`).
 
 **Shared pieces**

@@ -301,6 +301,29 @@ export async function addComment(postId: string, body: string, parentId?: string
   return error?.message ?? null;
 }
 
+// One of your own comments, with the post it's on (Profile → Comments)
+export type MyComment = {
+  id: string;
+  body: string;
+  created_at: string;
+  is_reply: boolean;
+  post_id: string;
+  post_title: string;
+  post_category: string;
+  lat: number;
+  lng: number;
+  post_live: boolean; // still on the map
+  comments_enabled: boolean;
+};
+
+export async function fetchMyComments(): Promise<{ comments: MyComment[]; error: string | null }> {
+  const { db, error: authError } = await signedIn();
+  if (!db) return { comments: [], error: authError };
+  const { data, error } = await db.rpc("my_comments");
+  if (error?.code === "PGRST202") return { comments: [], error: "Run supabase/012_my_comments.sql to list your comments here." };
+  return { comments: (data as MyComment[]) ?? [], error: error?.message ?? null };
+}
+
 export async function deleteComment(commentId: string): Promise<string | null> {
   const { db, error: authError } = await signedIn();
   if (!db) return authError;

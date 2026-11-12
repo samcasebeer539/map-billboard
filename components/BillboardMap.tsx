@@ -139,6 +139,7 @@ export default function BillboardMap() {
   const draftMarkerRef = useRef<Marker | null>(null);
   const cardsRef = useRef(new Map<string, CardEntry>());
   const highlightRef = useRef<string | null>(null); // post id from a share link, or picked in the feed
+  const openCommentsRef = useRef<string | null>(null); // post id from Profile → Comments → View on map
   const feedLoadRef = useRef(0);
   const feedOpenRef = useRef(false);
 
@@ -380,6 +381,13 @@ export default function BillboardMap() {
     if (loadId !== loadIdRef.current) return; // the map moved again while this was loading
     postsRef.current = posts;
     showPosts();
+    // Arrived from Profile → Comments: open that post's comments once it has loaded
+    const openId = openCommentsRef.current;
+    const target = openId && posts.find((p) => p.id === openId);
+    if (target) {
+      openCommentsRef.current = null;
+      if (target.comments_enabled) setCommentsPost(target);
+    }
   }, [showPosts]);
 
   // Create the map once
@@ -389,6 +397,7 @@ export default function BillboardMap() {
     // "View on map" and share links pass ?lat=..&lng=.. (share links also ?post=<id> to highlight it)
     const params = new URLSearchParams(window.location.search);
     highlightRef.current = params.get("post");
+    if (params.get("comments")) openCommentsRef.current = params.get("post");
     const lat = parseFloat(params.get("lat") ?? "");
     const lng = parseFloat(params.get("lng") ?? "");
     const focus = Number.isFinite(lat) && Number.isFinite(lng);
