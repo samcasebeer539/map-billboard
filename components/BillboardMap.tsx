@@ -139,7 +139,8 @@ export default function BillboardMap() {
   const draftMarkerRef = useRef<Marker | null>(null);
   const cardsRef = useRef(new Map<string, CardEntry>());
   const highlightRef = useRef<string | null>(null); // post id from a share link, or picked in the feed
-  const openCommentsRef = useRef<string | null>(null); // post id from Profile → Comments → View on map
+  const openCommentsRef = useRef<string | null>(null); // post id from Profile → Comments or Notifications
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(null); // comment to highlight when they open
   const feedLoadRef = useRef(0);
   const feedOpenRef = useRef(false);
 
@@ -398,6 +399,7 @@ export default function BillboardMap() {
     const params = new URLSearchParams(window.location.search);
     highlightRef.current = params.get("post");
     if (params.get("comments")) openCommentsRef.current = params.get("post");
+    setFocusCommentId(params.get("comment"));
     const lat = parseFloat(params.get("lat") ?? "");
     const lng = parseFloat(params.get("lng") ?? "");
     const focus = Number.isFinite(lat) && Number.isFinite(lng);
@@ -553,7 +555,11 @@ export default function BillboardMap() {
         <CommentsPanel
           key={commentsPost.id}
           post={commentsPost}
-          onClose={() => setCommentsPost(null)}
+          focusCommentId={focusCommentId}
+          onClose={() => {
+            setCommentsPost(null);
+            setFocusCommentId(null);
+          }}
           onCountChange={updateCommentCount}
         />
       )}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import FloatingIconButton from "./FloatingIconButton";
+import { useUnreadCount } from "@/lib/useUnreadCount";
 
 // 20×20 line icons, drawn in the current text color
 const icon = (paths: ReactNode) => (
@@ -31,6 +32,12 @@ const LINKS = [
     ),
   },
   {
+    href: "/notifications",
+    label: "Notifications",
+    // bell
+    icon: icon(<path d="M5 13.5V9a5 5 0 0 1 10 0v4.5l1.5 2h-13zM8.25 17.5a1.9 1.9 0 0 0 3.5 0" />),
+  },
+  {
     href: "/settings",
     label: "Settings",
     // sliders
@@ -48,6 +55,8 @@ export default function NavMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const rootRef = useRef<HTMLDivElement>(null);
+  const unread = useUnreadCount();
+  const dot = <span aria-hidden className="absolute top-1.5 right-1.5 size-2 rounded-full bg-accent ring-2 ring-surface" />;
 
   // Close on Escape or on a press anywhere outside the menu. The press still goes through
   // to whatever was under it (e.g. the map), so you don't need an extra click to close first.
@@ -71,10 +80,15 @@ export default function NavMenu() {
           near-misses, so they don't land on the map and drop a pin */}
       {open && <div className="absolute -inset-4" aria-hidden />}
 
-      <FloatingIconButton onClick={() => setOpen((o) => !o)} aria-label="Menu" aria-expanded={open}>
+      <FloatingIconButton
+        onClick={() => setOpen((o) => !o)}
+        aria-label={unread ? `Menu (${unread} new ${unread === 1 ? "notification" : "notifications"})` : "Menu"}
+        aria-expanded={open}
+      >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           {open ? <path d="M5 5l10 10M15 5L5 15" /> : <path d="M3 5h14M3 10h14M3 15h14" />}
         </svg>
+        {unread > 0 && !open && dot}
       </FloatingIconButton>
 
       {open && (
@@ -88,14 +102,15 @@ export default function NavMenu() {
                   key={l.href}
                   href={l.href}
                   onClick={() => setOpen(false)}
-                  aria-label={l.label}
+                  aria-label={l.href === "/notifications" && unread ? `${l.label} (${unread} new)` : l.label}
                   title={l.label}
                   aria-current={current ? "page" : undefined}
-                  className={`flex size-8 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
+                  className={`relative flex size-8 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
                     current ? "bg-surface-2 text-accent" : "text-fg"
                   }`}
                 >
                   {l.icon}
+                  {l.href === "/notifications" && unread > 0 && dot}
                 </Link>
               );
             })}

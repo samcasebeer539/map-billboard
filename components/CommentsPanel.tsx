@@ -16,7 +16,8 @@ function author(c: Comment) {
   return c.author_no ? `Anonymous ${c.author_no}` : "Anonymous";
 }
 
-const HIGHLIGHT_MS = 1200;
+const HIGHLIGHT_MS = 1200; // after clicking a quote line
+const ARRIVAL_HIGHLIGHT_MS = 3000; // after arriving from a notification: long enough to spot
 
 // Comments with their replies underneath (one level: a reply to a reply joins the same thread)
 function threads(comments: Comment[]) {
@@ -29,10 +30,12 @@ function threads(comments: Comment[]) {
 // onCountChange keeps the comment count on the map card in sync.
 export default function CommentsPanel({
   post,
+  focusCommentId,
   onClose,
   onCountChange,
 }: {
   post: Post;
+  focusCommentId?: string | null; // scroll to and flash this comment once loaded (from Notifications)
   onClose: () => void;
   onCountChange: (count: number) => void;
 }) {
@@ -42,19 +45,28 @@ export default function CommentsPanel({
   const [error, setError] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [flashId, setFlashId] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{ id: string; ms: number } | null>(null);
+  const flashId = flash?.id;
   const byId = new Map((comments ?? []).map((c) => [c.id, c]));
 
   // Clicking a reply's quote line: scroll to the comment it answers and flash it
-  function jumpTo(id: string) {
+  function jumpTo(id: string, ms = HIGHLIGHT_MS) {
     document.getElementById(`comment-${id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    setFlashId(id);
+    setFlash({ id, ms });
   }
+  // Arriving from a notification: show the comment it's about
+  const focusedRef = useRef(false);
   useEffect(() => {
-    if (!flashId) return;
-    const t = setTimeout(() => setFlashId(null), HIGHLIGHT_MS);
+    if (!focusCommentId || focusedRef.current || !comments?.some((c) => c.id === focusCommentId)) return;
+    focusedRef.current = true;
+    requestAnimationFrame(() => jumpTo(focusCommentId, ARRIVAL_HIGHLIGHT_MS));
+  }, [comments, focusCommentId]);
+
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), flash.ms);
     return () => clearTimeout(t);
-  }, [flashId]);
+  }, [flash]);
 
   const load = useCallback(async () => {
     const res = await fetchComments(post.id);

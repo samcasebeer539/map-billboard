@@ -314,6 +314,7 @@ export type MyComment = {
   lng: number;
   post_live: boolean; // still on the map
   comments_enabled: boolean;
+  reply_count?: number; // after supabase/013_notifications.sql
 };
 
 export async function fetchMyComments(): Promise<{ comments: MyComment[]; error: string | null }> {
@@ -330,6 +331,51 @@ export async function deleteComment(commentId: string): Promise<string | null> {
   const { data, error } = await db.rpc("delete_comment", { p_comment_id: commentId });
   if (error) return error.message;
   return data ? null : "You can't delete that comment.";
+}
+
+// ---------- Notifications (supabase/013_notifications.sql) ----------
+
+export type Notification = {
+  id: string; // the comment that triggered it
+  kind: "reply" | "comment"; // replied to your comment / commented on your post
+  created_at: string;
+  body: string;
+  author_no: number | null;
+  by_poster: boolean;
+  your_comment: string | null; // for replies: what they answered
+  post_id: string;
+  post_title: string;
+  post_category: string;
+  lat: number;
+  lng: number;
+  post_live: boolean;
+  comments_enabled: boolean;
+  unread: boolean;
+};
+
+export const NOTIFICATIONS_READ_EVENT = "mb-notifications-read"; // tells the menu dot to refresh
+
+export async function fetchNotifications(): Promise<{ items: Notification[]; error: string | null }> {
+  const { db, error: authError } = await signedIn();
+  if (!db) return { items: [], error: authError };
+  const { data, error } = await db.rpc("my_notifications");
+  if (error?.code === "PGRST202") return { items: [], error: "Run supabase/013_notifications.sql to turn on notifications." };
+  return { items: (data as Notification[]) ?? [], error: error?.message ?? null };
+}
+
+// For the dot on the menu. Doesn't create a guest account just to check (no session: 0).
+export async function fetchUnreadCount(): Promise<number> {
+  if (!supabase) return 0;
+  const { data: auth } = await supabase.auth.getSession();
+  if (!auth.session) return 0;
+  const { data, error } = await supabase.rpc("unread_notification_count");
+  return error ? 0 : ((data as number) ?? 0);
+}
+
+export async function markNotificationsRead(): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.rpc("mark_notifications_read");
+  if (!error) window.dispatchEvent(new Event(NOTIFICATIONS_READ_EVENT));
 }
 
 // ---------- Reports ----------

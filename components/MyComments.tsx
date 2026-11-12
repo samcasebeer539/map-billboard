@@ -72,7 +72,10 @@ function CommentRow({ comment: c, onDeleted }: { comment: MyComment; onDeleted: 
         <span className="font-medium">{c.post_title}</span>
       </div>
       <p className="mt-2 whitespace-pre-wrap break-words text-sm">{c.body}</p>
-      <div className="mt-2 text-xs text-muted">{fmtDate(c.created_at)}</div>
+      <div className="mt-2 text-xs text-muted">
+        {fmtDate(c.created_at)}
+        {!!c.reply_count && ` · ${c.reply_count} ${c.reply_count === 1 ? "reply" : "replies"}`}
+      </div>
 
       <div className="mt-4 flex flex-col items-start gap-2">
         <div className="-ml-3 flex gap-1">
