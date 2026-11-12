@@ -9,8 +9,8 @@ import FloatingIconButton from "./FloatingIconButton";
 
 type Mode = "places" | "posts";
 const MODES: { id: Mode; label: string; placeholder: string }[] = [
-  { id: "places", label: "Places", placeholder: "Search a place or address" },
   { id: "posts", label: "Posts", placeholder: "Search post text" },
+  { id: "places", label: "Places", placeholder: "Search a place or address" },
 ];
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 300;
@@ -40,7 +40,7 @@ export default function SearchBar({
   onPickPost: (p: Post) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<Mode>("places");
+  const [mode, setMode] = useState<Mode>("posts");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Result[] | null>(null); // null: nothing searched yet
   const [loading, setLoading] = useState(false);

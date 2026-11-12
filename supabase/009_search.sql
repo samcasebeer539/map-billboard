@@ -40,3 +40,6 @@ $$;
 
 revoke all on function public.search_posts(text, double precision, double precision) from public;
 grant execute on function public.search_posts(text, double precision, double precision) to anon, authenticated;
+
+-- Make the API see the new function right away
+notify pgrst, 'reload schema';
