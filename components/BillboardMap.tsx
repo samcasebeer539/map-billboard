@@ -25,6 +25,8 @@ import NavMenu from "./NavMenu";
 import PostCard, { PostActions } from "./PostCard";
 import FeedPanel from "./FeedPanel";
 import CategoryFilter from "./CategoryFilter";
+import SearchBar from "./SearchBar";
+import type { Place } from "@/lib/geocode";
 import { matchesFilter } from "@/lib/categories";
 import Lightbox, { LightboxImage } from "./Lightbox";
 import CommentsPanel from "./CommentsPanel";
@@ -193,10 +195,9 @@ export default function BillboardMap() {
   }, []);
 
   // Move the map so a post's card is in view, beside the side panel rather than under it
-  const showOnMap = useCallback((p: Post, always: boolean) => {
+  const showOnMap = useCallback((p: Post, always: boolean, besidePanel = !isPhone()) => {
     const map = mapRef.current;
     if (!map) return;
-    const besidePanel = !isPhone();
     const x = map.project([p.lng, p.lat]).x;
     if (!always && (!besidePanel || x > PANEL_WIDTH + 140)) return; // already clear of the panel
     map.easeTo({
@@ -234,6 +235,33 @@ export default function BillboardMap() {
     setFeed(null);
     setHighlight(null);
   }, [setHighlight]);
+
+  // For the search bar
+  const getCenter = useCallback(() => {
+    const c = mapRef.current?.getCenter();
+    return c ? { lat: c.lat, lng: c.lng } : { lat: START[1], lng: START[0] };
+  }, []);
+  const loadedPosts = useCallback(() => postsRef.current, []);
+  const panelOpen = !!(draft || feed || commentsPost);
+
+  function goToPlace(p: Place) {
+    const map = mapRef.current;
+    if (!map) return;
+    // Keep the place clear of an open side panel
+    const left = panelOpen && !isPhone() ? PANEL_WIDTH : 0;
+    if (p.bbox) {
+      const [w, s, e, n] = p.bbox;
+      map.fitBounds([[w, s], [e, n]], { padding: { top: 80, bottom: 40, left: left + 40, right: 40 }, maxZoom: 16 });
+    } else {
+      map.easeTo({ center: [p.lng, p.lat], zoom: p.zoom, offset: [left / 2, 0] });
+    }
+  }
+
+  // A post from search: ring it and bring it into view (its card shows once it's loaded)
+  function goToPost(p: Post) {
+    setHighlight(p.id);
+    showOnMap(p, true, panelOpen && !isPhone());
+  }
 
   // Picking a post in the feed: ring it and bring it into view. Phones close the
   // full-screen feed so the map can be seen.
@@ -463,7 +491,7 @@ export default function BillboardMap() {
           so they can never cover the menu, post form or photo viewer */}
       <div ref={containerRef} className="isolate h-full w-full" />
 
-      {/* Menu button and category filter: top-left; slides beside the post form (sm+) or hides behind it on phones.
+      {/* Menu, category filter and search: top-left; slides beside the post form (sm+) or hides behind it on phones.
           left-99 = the form's 380px width + 16px gap */}
       <div className={`absolute top-4 z-20 transition-[left] duration-200 ${draft || feed || commentsPost ? "left-4 max-sm:hidden sm:left-99" : "left-4"}`}>
         <div className="flex items-start gap-2">
@@ -477,6 +505,13 @@ export default function BillboardMap() {
               setFilter(next);
               showPosts();
             }}
+          />
+          <SearchBar
+            getCenter={getCenter}
+            loadedPosts={loadedPosts}
+            filter={filter}
+            onPickPlace={goToPlace}
+            onPickPost={goToPost}
           />
         </div>
       </div>

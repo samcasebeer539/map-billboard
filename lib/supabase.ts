@@ -114,6 +114,19 @@ export async function fetchPostsInView(bounds: { west: number; south: number; ea
   return data as Post[];
 }
 
+// Posts whose text contains every word of `q`, closest to `near` first.
+// Returns null if the search function isn't installed yet (supabase/009_search.sql),
+// so the caller can fall back to searching the posts already loaded.
+export async function searchPosts(q: string, near: { lat: number; lng: number }): Promise<Post[] | null> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc("search_posts", { q, near_lat: near.lat, near_lng: near.lng });
+  if (error) {
+    console.error("search_posts failed:", error.message);
+    return null;
+  }
+  return data as Post[];
+}
+
 export const fetchMyPosts = () => fetchList("my_posts");
 
 export async function createPost(input: {

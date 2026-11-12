@@ -12,7 +12,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`, `supabase/008_email_accounts.sql`.
+   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`, `supabase/008_email_accounts.sql`, `supabase/009_search.sql`.
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
@@ -64,6 +64,7 @@ Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the sam
 
 **Accounts**
 - Everyone starts as a guest (an anonymous account in this browser). `components/AccountCard.tsx` in Settings lets them sign in with an email code or link (`lib/auth.ts`).
+- Search (beside the menu button) finds places with [Photon](https://photon.komoot.io), a free OpenStreetMap geocoder (no key, fair use: typing is debounced), or post text with `search_posts` (`supabase/009_search.sql`): posts containing every word, closest to the map's center first. Before 009 is run, post search falls back to the posts already loaded around the map.
 - A guest who adds a new email keeps the same account. If the email already has an account, the guest's posts, saves and comments move into it on sign-in (one-time transfer token, `supabase/008_email_accounts.sql`).
 
 **Profile and settings**
