@@ -458,6 +458,8 @@ export default function BillboardMap() {
         setCommentsPost(null);
         cardActionsRef.current.closeFeed();
         setDraft({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        // Center on the new pin; on larger screens, in the space beside the post form
+        map.easeTo({ center: e.lngLat, offset: isPhone() ? [0, 0] : [PANEL_WIDTH / 2, 0] });
         return;
       }
       const center = (f.geometry as GeoJSON.Point).coordinates as [number, number];
