@@ -58,8 +58,7 @@ export default function NotificationsList() {
       )}
       {items && !error && items.length === 0 && (
         <div className="card p-6 text-center text-sm text-muted">
-          Nothing yet. Replies to your comments, comments on your posts and reminders about posts
-          that are about to expire will show up here.
+          Nothing yet.
         </div>
       )}
       {items?.map((n) => (
