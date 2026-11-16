@@ -185,7 +185,7 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
           {error}
         </p>
       )}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-4">
         <button onClick={onCancel} className="btn-ghost">
           Cancel
         </button>

@@ -206,7 +206,7 @@ export default function CommentsPanel({
             </span>
           </div>
           {/* 8px gap + 8px = 16px above the buttons, the same as the post form */}
-          <div className="mt-2 flex justify-end gap-2">
+          <div className="mt-2 flex justify-end gap-4">
             <button type="button" onClick={onClose} className="btn-ghost">
               Cancel
             </button>

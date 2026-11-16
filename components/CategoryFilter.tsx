@@ -66,8 +66,8 @@ export default function CategoryFilter({
                     role="menuitemcheckbox"
                     aria-checked={on}
                     onClick={() => onToggle(c)}
-                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm capitalize hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
-                      on ? "text-accent" : "text-fg"
+                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm capitalize transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
+                      on ? "text-accent" : "text-muted hover:text-fg"
                     }`}
                   >
                     <span className="flex items-center gap-2">

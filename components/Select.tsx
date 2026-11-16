@@ -134,9 +134,10 @@ export default function Select({ id, value, options, onChange, capitalize = true
               onMouseEnter={() => setActive(i)}
               onMouseDown={(e) => e.preventDefault()} // keep focus on the button
               onClick={() => choose(i)}
-              className={`flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm ${cap} ${
-                i === active ? "bg-surface-2" : ""
-              } ${o === value ? "text-accent" : "text-fg"}`}
+              className={`flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm ${cap} transition-colors ${
+                // the hovered / arrow-key row goes to full color; the chosen one is the accent
+                o === value ? "text-accent" : i === active ? "text-fg" : "text-muted"
+              }`}
             >
               <span className="flex items-center gap-2">
                 {swatch && <Dot color={swatch(o)} />}

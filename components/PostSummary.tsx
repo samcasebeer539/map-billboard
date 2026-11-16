@@ -74,7 +74,9 @@ export default function PostSummary({
       <div className="mt-4 flex flex-col items-start gap-2">
         <span className="text-xs text-muted">{meta}</span>
         {/* Negative margin lines the buttons' text up with the content edge (buttons have 12px padding) */}
-        <div className="flex flex-wrap gap-2">{actions}</div>
+        {/* -mb-2: the label sits mid-way in its 32px button, so this puts the text 16px
+            (the card's padding) from the bottom edge */}
+        <div className="-mb-2 flex flex-wrap gap-x-4">{actions}</div>
       </div>
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">

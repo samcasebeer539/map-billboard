@@ -177,7 +177,7 @@ export default function SearchBar({
             } else close();
           }}
           aria-label={query ? "Clear search" : "Close search"}
-          className="flex size-10 shrink-0 items-center justify-center rounded-md text-fg hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent"
+          className="flex size-10 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
         >
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
             <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
@@ -219,18 +219,18 @@ export default function SearchBar({
                     onMouseEnter={() => setActive(i)}
                     onMouseDown={(e) => e.preventDefault()} // keep focus in the field
                     onClick={() => pick(r)}
-                    className={`cursor-pointer rounded-md px-3 py-2 ${i === active ? "bg-surface-2" : ""}`}
+                    className={`cursor-pointer rounded-md px-3 py-2 transition-colors ${i === active ? "text-fg" : "text-muted"}`}
                   >
                     {r.kind === "place" ? (
                       <>
-                        <div className="truncate text-sm text-fg">{r.place.name}</div>
+                        <div className="truncate text-sm">{r.place.name}</div>
                         {r.place.detail && <div className="truncate text-xs text-muted">{r.place.detail}</div>}
                       </>
                     ) : (
                       <>
                         <div className="flex items-center gap-2">
                           <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoryColor(r.post.category) }} />
-                          <span className="truncate text-sm text-fg">{r.post.title}</span>
+                          <span className="truncate text-sm">{r.post.title}</span>
                         </div>
                         <div className="truncate pl-4.5 text-xs text-muted">
                           {formatDistance(distanceKm(center, r.post))} away{r.post.body ? ` · ${r.post.body}` : ""}

@@ -66,8 +66,8 @@ export default function ReportDialog({
               role="radio"
               aria-checked={reason === r}
               onClick={() => setReason(r)}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
-                reason === r ? "bg-surface-2" : ""
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+                reason === r ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"
               }`}
             >
               <span
@@ -87,7 +87,7 @@ export default function ReportDialog({
           </p>
         )}
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-4">
           <button type="button" onClick={onClose} className="btn-ghost">
             Cancel
           </button>

@@ -64,7 +64,7 @@ export default function ImagePicker({ id, file, existingUrl, onPick, onRemove, o
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex h-24 w-full flex-col items-center justify-center gap-1 rounded-lg bg-surface-2 text-sm text-muted transition-colors hover:bg-line/60 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="flex h-24 w-full flex-col items-center justify-center gap-1 rounded-lg bg-surface-2 text-sm text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <rect x="2.5" y="4" width="15" height="12" rx="2" />

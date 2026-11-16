@@ -100,7 +100,7 @@ export default function AccountCard() {
   const newPasswordForm = (submitLabel: string, onCancel?: () => void) => (
     <form onSubmit={submitNewPassword} className="flex flex-col gap-4">
       {passwordField("account-new-password", "New password", true)}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-4">
         {onCancel && (
           <button type="button" onClick={onCancel} className="btn-ghost">
             Cancel
@@ -132,7 +132,7 @@ export default function AccountCard() {
         title="Signed in"
         subtitle={signedInEmail}
         action={
-          <button type="button" onClick={() => run(signOut)} disabled={busy} className="btn-ghost">
+          <button type="button" onClick={() => run(signOut)} disabled={busy} className="btn-ghost -mt-2">
             Sign out
           </button>
         }
@@ -144,7 +144,7 @@ export default function AccountCard() {
             setError(null);
           })
         ) : (
-          <div>
+          <div className="-mb-2">
             <button
               type="button"
               onClick={() => {

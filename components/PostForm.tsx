@@ -51,7 +51,7 @@ export default function PostForm({ location, onCancel, onPosted }: Props) {
       onClose={onCancel}
       onSubmit={submit}
       footer={
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-4">
           <button type="button" onClick={onCancel} className="btn-ghost">
             Cancel
           </button>

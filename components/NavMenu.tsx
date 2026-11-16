@@ -105,8 +105,8 @@ export default function NavMenu() {
                   aria-label={l.href === "/notifications" && unread ? `${l.label} (${unread} new)` : l.label}
                   title={l.label}
                   aria-current={current ? "page" : undefined}
-                  className={`relative flex size-10 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
-                    current ? "text-accent" : "text-fg"
+                  className={`relative flex size-10 items-center justify-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+                    current ? "text-accent" : "text-muted hover:text-fg"
                   }`}
                 >
                   {l.icon}
