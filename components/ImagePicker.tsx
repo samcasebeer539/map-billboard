@@ -49,7 +49,7 @@ export default function ImagePicker({ id, file, existingUrl, onPick, onRemove, o
         <div className="relative overflow-hidden rounded-lg bg-surface-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={shown} alt="Selected photo" className="block h-auto max-h-80 w-full object-cover" />
-          <div className="absolute top-2 right-2 flex gap-1">
+          <div className="absolute top-2 right-2 flex gap-2">
             <button type="button" onClick={() => inputRef.current?.click()} className="btn floating h-8 px-3">
               Replace
             </button>

@@ -132,7 +132,7 @@ export default function AccountCard() {
         title="Signed in"
         subtitle={signedInEmail}
         action={
-          <button type="button" onClick={() => run(signOut)} disabled={busy} className="btn-ghost -mr-2">
+          <button type="button" onClick={() => run(signOut)} disabled={busy} className="btn-ghost">
             Sign out
           </button>
         }
@@ -151,7 +151,7 @@ export default function AccountCard() {
                 setChanging(true);
                 setNotice(null);
               }}
-              className="btn-ghost-sm -ml-3"
+              className="btn-ghost-sm"
             >
               Change password
             </button>
@@ -175,7 +175,7 @@ export default function AccountCard() {
       }
     >
       {!isReset && (
-        <div role="tablist" aria-label="Account" className="flex gap-1">
+        <div role="tablist" aria-label="Account" className="flex">
           {(
             [
               ["signin", "Sign in"],
@@ -217,11 +217,11 @@ export default function AccountCard() {
 
         <div className="flex items-center justify-between gap-2">
           {view === "signin" ? (
-            <button type="button" onClick={() => switchView("reset")} className="btn-ghost-sm -ml-3">
+            <button type="button" onClick={() => switchView("reset")} className="btn-ghost-sm">
               Forgot password?
             </button>
           ) : isReset ? (
-            <button type="button" onClick={() => switchView("signin")} className="btn-ghost-sm -ml-3">
+            <button type="button" onClick={() => switchView("signin")} className="btn-ghost-sm">
               Back to sign in
             </button>
           ) : (

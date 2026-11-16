@@ -35,7 +35,7 @@ export default function ProfileTabs() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="tablist" aria-label="Profile" onKeyDown={onKeyDown} className="flex gap-1 self-start">
+      <div role="tablist" aria-label="Profile" onKeyDown={onKeyDown} className="flex self-start">
         {TABS.map((t) => {
           const active = tab === t.id;
           return (

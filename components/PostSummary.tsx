@@ -74,7 +74,7 @@ export default function PostSummary({
       <div className="mt-4 flex flex-col items-start gap-2">
         <span className="text-xs text-muted">{meta}</span>
         {/* Negative margin lines the buttons' text up with the content edge (buttons have 12px padding) */}
-        <div className="-ml-3 flex flex-wrap gap-1">{actions}</div>
+        <div className="flex flex-wrap gap-2">{actions}</div>
       </div>
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">

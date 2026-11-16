@@ -179,38 +179,40 @@ export default function CommentsPanel({
           <label htmlFor="comment-body" className="sr-only">
             {replyTo ? "Write a reply" : "Add a comment"}
           </label>
-          <textarea
-            ref={textareaRef}
-            id="comment-body"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              // Enter sends, Shift+Enter adds a line break
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                e.currentTarget.form?.requestSubmit();
-              } else if (e.key === "Escape" && replyTo) {
-                e.preventDefault();
-                setReplyTo(null);
-              }
-            }}
-            maxLength={COMMENT_MAX}
-            rows={2}
-            placeholder={replyTo ? "Write a reply" : "Add a comment"}
-            className="input resize-none"
-          />
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted">
+          {/* Counter under the box, right-aligned, like Details in the post form */}
+          <div className="flex flex-col">
+            <textarea
+              ref={textareaRef}
+              id="comment-body"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                // Enter sends, Shift+Enter adds a line break
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  e.currentTarget.form?.requestSubmit();
+                } else if (e.key === "Escape" && replyTo) {
+                  e.preventDefault();
+                  setReplyTo(null);
+                }
+              }}
+              maxLength={COMMENT_MAX}
+              rows={2}
+              placeholder={replyTo ? "Write a reply" : "Add a comment"}
+              className="input resize-none"
+            />
+            <span className="mt-1.5 self-end text-xs text-muted">
               {draft.length}/{COMMENT_MAX}
             </span>
-            <div className="flex gap-2">
-              <button type="button" onClick={onClose} className="btn-ghost">
-                Cancel
-              </button>
-              <button type="submit" disabled={busy || !draft.trim()} className="btn-primary">
-                {busy ? "Sending…" : replyTo ? "Reply" : "Comment"}
-              </button>
-            </div>
+          </div>
+          {/* 8px gap + 8px = 16px above the buttons, the same as the post form */}
+          <div className="mt-2 flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="btn-ghost">
+              Cancel
+            </button>
+            <button type="submit" disabled={busy || !draft.trim()} className="btn-primary">
+              {busy ? "Sending…" : replyTo ? "Reply" : "Comment"}
+            </button>
           </div>
         </form>
       }

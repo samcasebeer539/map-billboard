@@ -78,7 +78,7 @@ function CommentRow({ comment: c, onDeleted }: { comment: MyComment; onDeleted: 
       </div>
 
       <div className="mt-4 flex flex-col items-start gap-2">
-        <div className="-ml-3 flex gap-1">
+        <div className="flex gap-2">
           {/* Opens the map at the post with its comments showing */}
           {c.post_live && c.comments_enabled && (
             <Link href={`/?lat=${c.lat}&lng=${c.lng}&post=${c.post_id}&comments=1`} className="btn-ghost-sm">

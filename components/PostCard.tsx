@@ -79,7 +79,7 @@ export function PostContent({
 
       <div className="mt-2 flex items-center justify-between">
         <span className="text-xs text-muted">{meta ?? date}</span>
-        <div className="-mr-1.5 flex items-center">
+        <div className="flex items-center">
           {post.comments_enabled && (
             <IconButton
               label={`Comments (${post.comment_count})`}
