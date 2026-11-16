@@ -9,8 +9,8 @@ import FloatingIconButton from "./FloatingIconButton";
 
 type Mode = "places" | "posts";
 const MODES: { id: Mode; label: string; placeholder: string }[] = [
-  { id: "posts", label: "Posts", placeholder: "Search post text" },
-  { id: "places", label: "Places", placeholder: "Search a place or address" },
+  { id: "posts", label: "Posts", placeholder: "Search posts" },
+  { id: "places", label: "Places", placeholder: "Search places" },
 ];
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 300;

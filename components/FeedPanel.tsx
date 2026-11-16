@@ -29,7 +29,7 @@ export default function FeedPanel({
   return (
     <SidePanel
       title="Nearby"
-      subtitle={posts ? `${posts.length} ${filtered ? "filtered " : ""}${posts.length === 1 ? "post" : "posts"} within ${formatRadius(radiusKm)}, closest first` : "Loading…"}
+      subtitle={posts ? `${posts.length} ${filtered ? "filtered " : ""}${posts.length === 1 ? "post" : "posts"} within ${formatRadius(radiusKm)}` : "Loading…"}
       onClose={onClose}
     >
       {posts?.map((p) => {

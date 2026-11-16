@@ -20,7 +20,7 @@ export default function MyPosts({ onCount }: { onCount?: (n: number) => void }) 
   return (
     <div className="flex flex-col gap-4">
       {posts && posts.length > 0 && (
-        <p className={`text-xs ${active >= POST_LIMIT ? "text-danger" : "text-muted"}`}>
+        <p className={`text-xs ${active >= POST_LIMIT ? "text-muted" : "text-muted"}`}>
           {active} of {POST_LIMIT} active posts
           {active >= POST_LIMIT && " · delete one or let one expire to post again"}
         </p>

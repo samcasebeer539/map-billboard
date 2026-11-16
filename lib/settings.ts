@@ -22,7 +22,7 @@ export const STORAGE_KEYS = { theme: "mb-theme", accent: "mb-accent" } as const;
 // Keep it in sync with applyTheme/applyAccent below.
 export const themeInitScript = `(function(){try{
 var d=document.documentElement,t=localStorage.getItem("${STORAGE_KEYS.theme}");
-if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";
+if(t!=="light"&&t!=="dark")t="dark";
 d.classList.toggle("dark",t==="dark");
 var A=${JSON.stringify(ACCENTS)},a=A[localStorage.getItem("${STORAGE_KEYS.accent}")]||A["${DEFAULT_ACCENT}"];
 for(var k in A)d.style.setProperty("--pal-"+k,A[k][t]);
