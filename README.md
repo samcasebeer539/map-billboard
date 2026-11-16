@@ -12,7 +12,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```
 
 2. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
-   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`, `supabase/008_email_accounts.sql`, `supabase/009_search.sql`, `supabase/010_comment_replies.sql`, `supabase/011_reply_to_and_names.sql`, `supabase/012_my_comments.sql`, `supabase/013_notifications.sql`.
+   - Open **SQL Editor** and run, in order: `supabase/schema.sql`, `supabase/002_user_posts.sql`, `supabase/003_post_images.sql`, `supabase/004_post_duration.sql`, `supabase/005_saves.sql`, `supabase/006_edit_expiry.sql`, `supabase/007_comments_reports_limits.sql`, `supabase/008_email_accounts.sql`, `supabase/009_search.sql`, `supabase/010_comment_replies.sql`, `supabase/011_reply_to_and_names.sql`, `supabase/012_my_comments.sql`, `supabase/013_notifications.sql`, `supabase/014_expiry_notifications.sql`.
    - Go to **Authentication → Sign In / Providers** and turn on **Allow anonymous sign-ins**. Each browser gets its own account automatically, which is what lets people manage their posts on the Profile page.
    - Go to **Project Settings → API** and copy the project URL and `anon` key.
 
@@ -71,7 +71,7 @@ Supabase pauses free projects after a week without database activity. `.github/w
 - Signing in or creating an account moves the guest's posts, saves and comments into the account (one-time transfer token, `supabase/008_email_accounts.sql`). Supabase only lets a guest add a password after verifying their email, so instead of upgrading the guest in place, the app switches to the account and transfers the guest's things, which needs no email.
 
 **Notifications**
-- `app/notifications` lists replies to your comments and new comments on your posts, newest first; a dot on the menu button shows when there's something new (checked every minute and when you return to the tab, `lib/useUnreadCount.ts`). Clicking one opens the post's comments with that comment highlighted.
+- `app/notifications` lists replies to your comments, new comments on your posts, and reminders when your posts are about to expire or have expired (`supabase/014_expiry_notifications.sql`), newest first; a dot on the menu button shows when there's something new (checked every minute and when you return to the tab, `lib/useUnreadCount.ts`). Clicking one opens the post's comments with that comment highlighted.
 - Worked out from comments by `my_notifications` (`supabase/013_notifications.sql`), so there's no notification table to keep in sync; each account just stores when it last opened Notifications.
 
 **Profile and settings**

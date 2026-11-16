@@ -337,7 +337,9 @@ export async function deleteComment(commentId: string): Promise<string | null> {
 
 export type Notification = {
   id: string; // the comment that triggered it
-  kind: "reply" | "comment"; // replied to your comment / commented on your post
+  // replied to your comment / commented on your post / your post expires soon / expired
+  // (the last two after supabase/014_expiry_notifications.sql; their id is the post's)
+  kind: "reply" | "comment" | "expiring" | "expired";
   created_at: string;
   body: string;
   author_no: number | null;
@@ -350,6 +352,7 @@ export type Notification = {
   lng: number;
   post_live: boolean;
   comments_enabled: boolean;
+  expires_at?: string;
   unread: boolean;
 };
 
