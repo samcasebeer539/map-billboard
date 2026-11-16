@@ -77,7 +77,9 @@ export function PostContent({
       <div className="mt-1 text-sm font-medium">{post.title}</div>
       {post.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted">{post.body}</p>}
 
-      <div className="mt-2 flex items-center justify-between">
+      {/* Footer flush against the card's bottom-right corner; 40px icon buttons keep the
+          icons 12px (the card's padding) from both edges */}
+      <div className="mt-0.5 -mr-3 -mb-3 flex items-center justify-between">
         <span className="text-xs text-muted">{meta ?? date}</span>
         <div className="flex items-center">
           {post.comments_enabled && (
@@ -134,7 +136,7 @@ function IconButton({
       aria-label={label}
       aria-pressed={pressed}
       title={label}
-      className={`flex h-7 min-w-7 items-center justify-center gap-1 rounded-md px-1.5 text-xs tabular-nums hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
+      className={`flex h-10 min-w-10 items-center justify-center gap-1 rounded-md px-3 text-xs tabular-nums hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
         pressed ? "text-accent" : "text-muted"
       }`}
     >

@@ -114,6 +114,15 @@
 @utility btn-ghost {
   @apply btn text-fg hover:bg-surface-2;
 }
+/* Buttons that sit flush against a card's edge: 16px padding (the card's padding) lines
+   their label up with the card's text, and 48px height gives the same 16px-ish breathing
+   room below the label as the card's padding. Wrap them in -m-4 margins on the sides they touch. */
+@utility btn-flush {
+  @apply btn-ghost h-12 px-4;
+}
+@utility btn-flush-primary {
+  @apply btn-primary h-12 px-4;
+}
 @utility btn-ghost-sm {
   @apply btn-ghost h-8 px-3;
 }

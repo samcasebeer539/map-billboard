@@ -77,23 +77,22 @@ function CommentRow({ comment: c, onDeleted }: { comment: MyComment; onDeleted: 
         {!!c.reply_count && ` · ${c.reply_count} ${c.reply_count === 1 ? "reply" : "replies"}`}
       </div>
 
-      <div className="mt-4 flex flex-col items-start gap-2">
-        <div className="flex gap-2">
-          {/* Opens the map at the post with its comments showing */}
-          {c.post_live && c.comments_enabled && (
-            <Link href={`/?lat=${c.lat}&lng=${c.lng}&post=${c.post_id}&comments=1`} className="btn-ghost-sm">
-              View on map
-            </Link>
-          )}
-          <button type="button" onClick={remove} disabled={busy} className="btn-ghost-sm">
-            Delete
-          </button>
-        </div>
-        {error && (
-          <p role="alert" className="text-sm text-danger">
-            {error}
-          </p>
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      {/* Actions flush against the card's bottom-left corner */}
+      <div className="mt-1 -mb-4 -ml-4 flex">
+        {/* Opens the map at the post with its comments showing */}
+        {c.post_live && c.comments_enabled && (
+          <Link href={`/?lat=${c.lat}&lng=${c.lng}&post=${c.post_id}&comments=1`} className="btn-flush">
+            View on map
+          </Link>
         )}
+        <button type="button" onClick={remove} disabled={busy} className="btn-flush">
+          Delete
+        </button>
       </div>
     </article>
   );
