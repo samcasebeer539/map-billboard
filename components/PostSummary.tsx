@@ -38,9 +38,9 @@ export default function PostSummary({
             <span className="uppercase tracking-wide" style={{ color: categoryColor(post.category) }}>
               {post.category}
             </span>
-            {expired && <span className="rounded-full bg-surface-2 px-2 py-0.5">Expired</span>}
+            {expired && <span className="bg-surface-2 px-2 py-0.5">Expired</span>}
             {post.hidden && (
-              <span className="rounded-full bg-danger/10 px-2 py-0.5 text-danger" title="Hidden from the map after several reports">
+              <span className="bg-danger/10 px-2 py-0.5 text-danger" title="Hidden from the map after several reports">
                 Hidden
               </span>
             )}

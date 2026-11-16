@@ -65,7 +65,7 @@ function CommentRow({ comment: c, onDeleted }: { comment: MyComment; onDeleted: 
         <span className="uppercase tracking-wide" style={{ color: categoryColor(c.post_category) }}>
           {c.post_category}
         </span>
-        {!c.post_live && <span className="rounded-full bg-surface-2 px-2 py-0.5">No longer on the map</span>}
+        {!c.post_live && <span className="bg-surface-2 px-2 py-0.5">No longer on the map</span>}
       </div>
       <div className="mt-1 text-sm">
         <span className="text-muted">{c.is_reply ? "Reply on " : "Comment on "}</span>

@@ -71,7 +71,7 @@ function Row({ n }: { n: Notification }) {
             New
           </span>
         )}
-        {!linked && <span className="rounded-full bg-surface-2 px-2 py-0.5">No longer on the map</span>}
+        {!linked && <span className="bg-surface-2 px-2 py-0.5">No longer on the map</span>}
       </div>
       <div className="mt-1 text-sm">
         <span className={n.by_poster ? "text-accent" : ""}>{who(n)}</span>

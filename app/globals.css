@@ -40,6 +40,19 @@
   color-scheme: dark;
 }
 
+/* Square-corners experiment: every rounded-* size is 0. (rounded-full is left for
+   real circles: dots, swatches, radios.) */
+@theme {
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -127,7 +140,7 @@ body {
 
 .maplibregl-ctrl-group {
   background: var(--surface);
-  border-radius: 0.5rem;
+  border-radius: 0;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 6px 20px rgb(0 0 0 / 0.12) !important;
   overflow: hidden;
 }
@@ -137,7 +150,7 @@ body {
   width: 40px;
   height: 40px;
   padding: 4px;
-  border-radius: 10px; /* inner corner = 10 - 4 = 6px, the nav items' rounded-md */
+  border-radius: 0;
   background-clip: content-box;
 }
 .maplibregl-ctrl-group button + button {
@@ -161,6 +174,10 @@ body {
 }
 .maplibregl-ctrl-attrib.maplibregl-compact {
   background: var(--surface);
+  border-radius: 0;
+}
+.maplibregl-ctrl-attrib-button {
+  border-radius: 0;
 }
 .dark .maplibregl-ctrl-attrib-button {
   filter: invert(1);
