@@ -158,6 +158,11 @@ body {
 .dark .maplibregl-ctrl button .maplibregl-ctrl-icon {
   filter: invert(1);
 }
+/* Post cards are map markers with z-indexes up to 10000. Isolating the canvas container
+   keeps those z-indexes inside it, so the map controls (z-index 2) always stay on top. */
+.maplibregl-canvas-container {
+  isolation: isolate;
+}
 .maplibregl-ctrl-top-right {
   padding: 6px 6px 0 0; /* + MapLibre's 10px margin = 16px, matching the menu button */
 }

@@ -106,7 +106,7 @@ export default function NavMenu() {
                   title={l.label}
                   aria-current={current ? "page" : undefined}
                   className={`relative flex size-10 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
-                    current ? "bg-surface-2 text-accent" : "text-fg"
+                    current ? "text-accent" : "text-fg"
                   }`}
                 >
                   {l.icon}
