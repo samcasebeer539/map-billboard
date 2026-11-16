@@ -1,0 +1,42 @@
+# Supabase pauses free projects after a week without database activity, which would take
+# the demo offline. This makes one tiny database query every 3 days to keep it awake.
+#
+# Setup: in GitHub → Settings → Secrets and variables → Actions, add two repository secrets
+# with the same values as .env.local:
+#   SUPABASE_URL       (NEXT_PUBLIC_SUPABASE_URL)
+#   SUPABASE_ANON_KEY  (NEXT_PUBLIC_SUPABASE_ANON_KEY)
+# Then run it once from the Actions tab ("Run workflow") to check it works.
+#
+# If a run fails, GitHub emails you: usually it means the project is already paused
+# (resume it in the Supabase dashboard) or the secrets are missing.
+
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: "17 16 */3 * *" # every 3 days, 16:17 UTC (minute chosen to avoid the busy top of the hour)
+  workflow_dispatch: # "Run workflow" button for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query the database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Add the SUPABASE_URL and SUPABASE_ANON_KEY repository secrets (see the top of this file)."
+            exit 1
+          fi
+          # The same public function the map uses, over a tiny empty area: a real database
+          # read that returns almost nothing. --fail makes the job fail on any error status.
+          curl --silent --show-error --fail --max-time 30 \
+            -X POST "${SUPABASE_URL%/}/rest/v1/rpc/posts_in_view" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"min_lng":0,"min_lat":0,"max_lng":0.0001,"max_lat":0.0001}' \
+            -o /dev/null -w "Supabase answered with HTTP %{http_code}\n"

@@ -38,6 +38,8 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
 
 Push to GitHub, import the repo on [Vercel](https://vercel.com), and add the same env vars in the project settings.
 
+Supabase pauses free projects after a week without database activity. `.github/workflows/keep-supabase-awake.yml` makes a tiny query every 3 days to keep the demo up: add `SUPABASE_URL` and `SUPABASE_ANON_KEY` as repository secrets (GitHub → Settings → Secrets and variables → Actions), then run it once from the Actions tab.
+
 > Supabase pauses free projects after about a week of inactivity. Unpause it from the dashboard before you show the demo.
 
 ## How it works
