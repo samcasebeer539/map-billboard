@@ -390,12 +390,17 @@ export default function BillboardMap() {
     if (loadId !== loadIdRef.current) return; // the map moved again while this was loading
     postsRef.current = posts;
     showPosts();
-    // Arrived from Profile → Comments: open that post's comments once it has loaded
+    // Arrived from Profile → Comments or Notifications: open that post's comments once it has
+    // loaded. The link centered the map on the post across the whole screen; on larger screens
+    // the panel now covers the left side, so shift (instantly) to center it beside the panel.
     const openId = openCommentsRef.current;
     const target = openId && posts.find((p) => p.id === openId);
     if (target) {
       openCommentsRef.current = null;
-      if (target.comments_enabled) setCommentsPost(target);
+      if (target.comments_enabled) {
+        setCommentsPost(target);
+        if (!isPhone()) map.easeTo({ center: [target.lng, target.lat], offset: [PANEL_WIDTH / 2, 0], duration: 0 });
+      }
     }
   }, [showPosts]);
 
