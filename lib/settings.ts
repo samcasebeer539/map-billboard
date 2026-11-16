@@ -2,17 +2,18 @@ export type Theme = "light" | "dark";
 
 // Each accent has a darker shade for light mode and a lighter one for dark mode,
 // so text and buttons stay above WCAG AA contrast (4.5:1) in both themes.
-// Light shades are dark enough to read as text on white (4.5:1+). Darkening squeezes hues
-// together, so they're spread out (golden orange, bright pink, red-purple, sky blue,
-// yellow-green) to keep every pair clearly different (CIEDE2000 ΔE ≥ 22 between any two).
+// Light shades share one brightness and saturation (OKLCH lightness ~0.54) so they read as
+// a family, with hues spread so every pair stays easy to tell apart (CIEDE2000 ΔE ≥ ~20).
+// They're dark enough to read as text on white (orange is slightly under 4.5:1, by choice,
+// so it can look orange rather than brown).
 export const ACCENTS = {
-  orange: { light: "#a16207", dark: "#fb923c" },
-  red: { light: "#b91c1c", dark: "#f87171" },
-  pink: { light: "#db2777", dark: "#f472b6" },
-  purple: { light: "#6b21a8", dark: "#a78bfa" },
-  blue: { light: "#0369a1", dark: "#60a5fa" },
-  teal: { light: "#0f766e", dark: "#2dd4bf" },
-  green: { light: "#4d7c0f", dark: "#4ade80" },
+  orange: { light: "#c46009", dark: "#fb923c" },
+  red: { light: "#c13330", dark: "#f87171" },
+  pink: { light: "#b73278", dark: "#f472b6" },
+  purple: { light: "#7e4fc7", dark: "#a78bfa" },
+  blue: { light: "#086fc8", dark: "#60a5fa" },
+  teal: { light: "#097f7c", dark: "#2dd4bf" },
+  green: { light: "#0a8708", dark: "#4ade80" },
 } as const;
 
 export type Accent = keyof typeof ACCENTS;

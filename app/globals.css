@@ -10,7 +10,7 @@
    Surfaces are separated by fill contrast, shadow and spacing, not borders.
    ------------------------------------------------------------------ */
 :root {
-  --accent-light: #a16207;
+  --accent-light: #c46009;
   --accent-dark: #fb923c;
 
   --bg: #eceef2;        /* page background */
