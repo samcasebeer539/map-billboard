@@ -41,11 +41,11 @@ function SavedRow({ post, onUnsaved }: { post: Post; onUnsaved: () => void }) {
         <>
           {/* Expired posts are no longer on the map */}
           {!isExpired(post) && (
-            <Link href={`/?lat=${post.lat}&lng=${post.lng}`} className="btn-flush">
+            <Link href={`/?lat=${post.lat}&lng=${post.lng}`} className="btn-ghost-sm">
               View on map
             </Link>
           )}
-          <button onClick={unsave} disabled={busy} className="btn-flush">
+          <button onClick={unsave} disabled={busy} className="btn-ghost-sm">
             Unsave
           </button>
         </>

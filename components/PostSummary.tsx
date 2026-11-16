@@ -70,14 +70,17 @@ export default function PostSummary({
         />
       </div>
 
+      {/* Meta line, then the actions on their own row, left-aligned */}
+      <div className="mt-4 flex flex-col items-start gap-2">
+        <span className="text-xs text-muted">{meta}</span>
+        {/* Negative margin lines the buttons' text up with the content edge (buttons have 12px padding) */}
+        <div className="flex flex-wrap gap-2">{actions}</div>
+      </div>
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">
           {error}
         </p>
       )}
-      {/* Meta line, then the actions flush against the card's bottom-left corner */}
-      <div className="mt-4 text-xs text-muted">{meta}</div>
-      <div className="-mb-4 -ml-4 flex flex-wrap">{actions}</div>
     </article>
   );
 }

@@ -100,15 +100,13 @@ export default function AccountCard() {
   const newPasswordForm = (submitLabel: string, onCancel?: () => void) => (
     <form onSubmit={submitNewPassword} className="flex flex-col gap-4">
       {passwordField("account-new-password", "New password", true)}
-      {errorLine}
-      {/* Flush against the card's bottom-right corner */}
-      <div className="-mr-4 -mb-4 flex justify-end">
+      <div className="flex justify-end gap-2">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="btn-flush">
+          <button type="button" onClick={onCancel} className="btn-ghost">
             Cancel
           </button>
         )}
-        <button type="submit" disabled={busy || password.length < PASSWORD_MIN} className="btn-flush-primary">
+        <button type="submit" disabled={busy || password.length < PASSWORD_MIN} className="btn-primary">
           {busy ? "Saving…" : submitLabel}
         </button>
       </div>
@@ -122,6 +120,7 @@ export default function AccountCard() {
     return (
       <Card title="Set a new password" subtitle={signedInEmail ?? undefined}>
         {newPasswordForm("Save password")}
+        {errorLine}
       </Card>
     );
   }
@@ -133,13 +132,11 @@ export default function AccountCard() {
         title="Signed in"
         subtitle={signedInEmail}
         action={
-          <button type="button" onClick={() => run(signOut)} disabled={busy} className="btn-flush -mt-4 -mr-4">
+          <button type="button" onClick={() => run(signOut)} disabled={busy} className="btn-ghost">
             Sign out
           </button>
         }
       >
-        {noticeLine}
-        {!changing && errorLine}
         {changing ? (
           newPasswordForm("Change password", () => {
             setChanging(false);
@@ -147,20 +144,21 @@ export default function AccountCard() {
             setError(null);
           })
         ) : (
-          // Flush against the card's bottom-left corner
-          <div className="-mb-4 -ml-4">
+          <div>
             <button
               type="button"
               onClick={() => {
                 setChanging(true);
                 setNotice(null);
               }}
-              className="btn-flush"
+              className="btn-ghost-sm"
             >
               Change password
             </button>
           </div>
         )}
+        {noticeLine}
+        {errorLine}
       </Card>
     );
   }
@@ -217,16 +215,13 @@ export default function AccountCard() {
         {view === "signin" && passwordField("account-password", "Password", false)}
         {view === "create" && passwordField("account-password", "Password", true)}
 
-        {noticeLine}
-        {errorLine}
-        {/* Flush against the card's bottom corners */}
-        <div className="-mx-4 -mb-4 flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           {view === "signin" ? (
-            <button type="button" onClick={() => switchView("reset")} className="btn-flush">
+            <button type="button" onClick={() => switchView("reset")} className="btn-ghost-sm">
               Forgot password?
             </button>
           ) : isReset ? (
-            <button type="button" onClick={() => switchView("signin")} className="btn-flush">
+            <button type="button" onClick={() => switchView("signin")} className="btn-ghost-sm">
               Back to sign in
             </button>
           ) : (
@@ -235,12 +230,15 @@ export default function AccountCard() {
           <button
             type="submit"
             disabled={busy || !email.trim() || (view === "signin" && !password) || (view === "create" && password.length < PASSWORD_MIN)}
-            className="btn-flush-primary"
+            className="btn-primary"
           >
             {busy ? "Working…" : view === "signin" ? "Sign in" : view === "create" ? "Create account" : "Send link"}
           </button>
         </div>
       </form>
+
+      {noticeLine}
+      {errorLine}
     </Card>
   );
 }

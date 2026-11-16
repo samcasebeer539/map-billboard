@@ -84,13 +84,13 @@ function PostRow({ post, onChanged }: { post: Post; onChanged: () => void }) {
       }
       actions={
         <>
-          <Link href={`/?lat=${post.lat}&lng=${post.lng}`} className="btn-flush">
+          <Link href={`/?lat=${post.lat}&lng=${post.lng}`} className="btn-ghost-sm">
             View on map
           </Link>
-          <button onClick={() => setEditing(true)} className="btn-flush">
+          <button onClick={() => setEditing(true)} className="btn-ghost-sm">
             Edit
           </button>
-          <button onClick={remove} disabled={busy} className="btn-flush text-danger">
+          <button onClick={remove} disabled={busy} className="btn-ghost-sm text-danger">
             Delete
           </button>
         </>
@@ -185,11 +185,11 @@ function EditPost({ post, onCancel, onSaved }: { post: Post; onCancel: () => voi
           {error}
         </p>
       )}
-      <div className="-mr-4 -mb-4 flex justify-end">
-        <button onClick={onCancel} className="btn-flush">
+      <div className="flex justify-end gap-2">
+        <button onClick={onCancel} className="btn-ghost">
           Cancel
         </button>
-        <button onClick={save} disabled={busy || !title.trim()} className="btn-flush-primary">
+        <button onClick={save} disabled={busy || !title.trim()} className="btn-primary">
           {busy ? "Saving…" : "Save"}
         </button>
       </div>
