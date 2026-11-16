@@ -124,7 +124,7 @@ export default function Select({ id, value, options, onChange, capitalize = true
       </button>
 
       {open && (
-        <ul id={listId} role="listbox" className="floating absolute inset-x-0 top-full z-30 mt-1 rounded-lg p-1">
+        <ul id={listId} role="listbox" className="floating absolute inset-x-0 top-full z-30 mt-1 rounded-lg">
           {options.map((o, i) => (
             <li
               key={o}

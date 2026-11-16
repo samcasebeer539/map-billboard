@@ -149,7 +149,7 @@ export default function SearchBar({
           stops at the filter button's edge so it doesn't cover it) */}
       <div className="absolute -top-4 -right-4 -bottom-4 -left-2" aria-hidden />
 
-      <div className="floating relative flex h-10 items-center gap-2 rounded-lg pr-1 pl-3">
+      <div className="floating relative flex h-10 items-center gap-2 rounded-lg pl-3">
         <span className="text-muted">{searchIcon}</span>
         <input
           ref={inputRef}
@@ -177,7 +177,7 @@ export default function SearchBar({
             } else close();
           }}
           aria-label={query ? "Clear search" : "Close search"}
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-fg hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent"
+          className="flex size-10 shrink-0 items-center justify-center rounded-md text-fg hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent"
         >
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
             <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
@@ -185,8 +185,8 @@ export default function SearchBar({
         </button>
       </div>
 
-      <div className="floating relative mt-2 rounded-lg p-1">
-        <div role="tablist" aria-label="Search for" className="flex gap-1">
+      <div className="floating relative mt-2 rounded-lg">
+        <div role="tablist" aria-label="Search for" className="flex">
           {MODES.map((m) => (
             <button
               key={m.id}
@@ -197,7 +197,7 @@ export default function SearchBar({
                 setMode(m.id);
                 inputRef.current?.focus();
               }}
-              className={`h-8 flex-1 rounded-md text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
+              className={`h-10 flex-1 rounded-md text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${
                 mode === m.id ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"
               }`}
             >
@@ -207,7 +207,7 @@ export default function SearchBar({
         </div>
 
         {q.length >= MIN_CHARS && (
-          <div className="no-scrollbar mt-1 max-h-[min(20rem,calc(100dvh-10rem))] overflow-y-auto">
+          <div className="no-scrollbar max-h-[min(20rem,calc(100dvh-10rem))] overflow-y-auto">
             {results?.length ? (
               <ul id={listId} role="listbox" aria-label="Results">
                 {results.map((r, i) => (

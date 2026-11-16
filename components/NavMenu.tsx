@@ -94,7 +94,7 @@ export default function NavMenu() {
       {open && (
         // p-4 is the transparent buffer; top-8 + p-4 keeps the menu 48px below the button's top
         <div className="absolute -left-4 top-8 p-4">
-          <nav className="floating flex flex-col gap-1 rounded-lg p-1">
+          <nav className="floating flex flex-col rounded-lg">
             {LINKS.map((l) => {
               const current = pathname === l.href;
               return (
@@ -105,7 +105,7 @@ export default function NavMenu() {
                   aria-label={l.href === "/notifications" && unread ? `${l.label} (${unread} new)` : l.label}
                   title={l.label}
                   aria-current={current ? "page" : undefined}
-                  className={`relative flex size-8 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
+                  className={`relative flex size-10 items-center justify-center rounded-md hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent ${
                     current ? "bg-surface-2 text-accent" : "text-fg"
                   }`}
                 >

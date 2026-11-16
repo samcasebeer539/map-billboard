@@ -144,14 +144,10 @@ body {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 6px 20px rgb(0 0 0 / 0.12) !important;
   overflow: hidden;
 }
-/* Map controls match the menu and filter buttons: 40px, with a 32px inset hover box
-   (the fill is clipped to the content box, inside 4px of padding) */
+/* Map controls match the menu and filter buttons: 40px, hover fills the whole button */
 .maplibregl-ctrl-group button {
   width: 40px;
   height: 40px;
-  padding: 4px;
-  border-radius: 0;
-  background-clip: content-box;
 }
 .maplibregl-ctrl-group button + button {
   border-top: 0;

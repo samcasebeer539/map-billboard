@@ -56,7 +56,7 @@ export default function CategoryFilter({
       {open && (
         // p-4 is a transparent buffer; top-8 + p-4 puts the list 48px below the button's top
         <div className="absolute -left-4 top-8 p-4">
-          <ul role="menu" aria-label="Categories" className="floating w-44 rounded-lg p-1">
+          <ul role="menu" aria-label="Categories" className="floating w-44 rounded-lg">
             {CATEGORIES.map((c) => {
               const on = selected.has(c);
               return (
