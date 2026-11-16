@@ -11,15 +11,13 @@ type Account = { ready: boolean; email: string | null; isGuest: boolean; recover
 const AuthContext = createContext<Account>({ ready: false, email: null, isGuest: true, recovering: false, endRecovery: () => {} });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [account, setAccount] = useState({ ready: false, email: null as string | null, isGuest: true });
+  // Without a backend there's nothing to wait for, so it's ready straight away
+  const [account, setAccount] = useState({ ready: !supabase, email: null as string | null, isGuest: true });
   const [recovering, setRecovering] = useState(false);
   const endRecovery = useCallback(() => setRecovering(false), []);
 
   useEffect(() => {
-    if (!supabase) {
-      setAccount({ ready: true, email: null, isGuest: true });
-      return;
-    }
+    if (!supabase) return;
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") setRecovering(true);
       if (event === "SIGNED_OUT") setRecovering(false);

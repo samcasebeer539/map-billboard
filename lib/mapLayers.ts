@@ -25,10 +25,10 @@ export const START_ZOOM = 12;
 export const FOCUS_ZOOM = 16; // used for "View on map" links
 
 // At this zoom and closer, every post shows as a card; further out they are dots or groups
-export const CARD_ZOOM = 14;
+export const CARD_ZOOM = 13;
 
 // How far (px) a card's bottom edge sits above its post's location, so the triangle
-// points at the dot (8px radius + 2px border) instead of covering it.
+// points at the dot (8px radius) instead of covering it.
 export const CARD_LIFT = 14;
 
 // Up to this zoom, nearby posts are grouped into numbered clusters.

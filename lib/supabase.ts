@@ -92,11 +92,11 @@ async function signedIn(): Promise<{ db: SupabaseClient; error: null } | { db: n
 }
 
 // Runs a list RPC that needs a session (my_posts, saved_posts)
-async function fetchList(rpc: string): Promise<{ posts: Post[]; error: string | null }> {
+async function fetchList(rpc: string): Promise<{ items: Post[]; error: string | null }> {
   const { db, error: authError } = await signedIn();
-  if (!db) return { posts: [], error: authError };
+  if (!db) return { items: [], error: authError };
   const { data, error } = await db.rpc(rpc);
-  return { posts: (data as Post[]) ?? [], error: error?.message ?? null };
+  return { items: (data as Post[]) ?? [], error: error?.message ?? null };
 }
 
 // ---------- Posts ----------
@@ -317,12 +317,12 @@ export type MyComment = {
   reply_count?: number; // after supabase/013_notifications.sql
 };
 
-export async function fetchMyComments(): Promise<{ comments: MyComment[]; error: string | null }> {
+export async function fetchMyComments(): Promise<{ items: MyComment[]; error: string | null }> {
   const { db, error: authError } = await signedIn();
-  if (!db) return { comments: [], error: authError };
+  if (!db) return { items: [], error: authError };
   const { data, error } = await db.rpc("my_comments");
-  if (error?.code === "PGRST202") return { comments: [], error: "Run supabase/012_my_comments.sql to list your comments here." };
-  return { comments: (data as MyComment[]) ?? [], error: error?.message ?? null };
+  if (error?.code === "PGRST202") return { items: [], error: "Run supabase/012_my_comments.sql to list your comments here." };
+  return { items: (data as MyComment[]) ?? [], error: error?.message ?? null };
 }
 
 export async function deleteComment(commentId: string): Promise<string | null> {

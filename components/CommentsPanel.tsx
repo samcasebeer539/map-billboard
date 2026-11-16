@@ -68,18 +68,26 @@ export default function CommentsPanel({
     return () => clearTimeout(t);
   }, [flash]);
 
-  const load = useCallback(async () => {
-    const res = await fetchComments(post.id);
-    setComments(res.comments);
-    if (res.error) setError(res.error);
-    else onCountChange(res.comments.length);
-  }, [post.id, onCountChange]);
+  const apply = useCallback(
+    (res: Awaited<ReturnType<typeof fetchComments>>) => {
+      setComments(res.comments);
+      if (res.error) setError(res.error);
+      else onCountChange(res.comments.length);
+    },
+    [onCountChange]
+  );
 
+  // Reload after adding or deleting a comment
+  const load = useCallback(async () => apply(await fetchComments(post.id)), [post.id, apply]);
+
+  // First load. (The panel is remounted for each post, so state starts fresh.)
   useEffect(() => {
-    setComments(null);
-    setError(null);
-    load();
-  }, [load]);
+    let alive = true;
+    fetchComments(post.id).then((res) => alive && apply(res));
+    return () => {
+      alive = false;
+    };
+  }, [post.id, apply]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();

@@ -1,60 +1,71 @@
 "use client";
 
 import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect, useState } from "react";
-import type { Post } from "@/lib/supabase";
 
-// Loads a list of posts and reports its length (for the Profile tab counts)
-export function usePostList(
-  fetcher: () => Promise<{ posts: Post[]; error: string | null }>,
+type Fetcher<T> = () => Promise<{ items: T[]; error: string | null }>;
+
+// Loads a list (posts, comments...) and reports its length (for the Profile tab counts).
+// `reload` refetches after a change, e.g. editing a post.
+export function useList<T>(
+  fetcher: Fetcher<T>,
   onCount?: (n: number) => void
 ): {
-  posts: Post[] | null;
-  setPosts: Dispatch<SetStateAction<Post[] | null>>;
+  items: T[] | null; // null while loading
+  setItems: Dispatch<SetStateAction<T[] | null>>;
   error: string | null;
   reload: () => Promise<void>;
 } {
-  const [posts, setPosts] = useState<Post[] | null>(null);
+  const [items, setItems] = useState<T[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     const res = await fetcher();
-    setPosts(res.posts);
+    setItems(res.items);
     setError(res.error);
   }, [fetcher]);
 
+  // First load. State is only set once the request finishes (and not after unmounting).
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let alive = true;
+    fetcher().then((res) => {
+      if (!alive) return;
+      setItems(res.items);
+      setError(res.error);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [fetcher]);
 
   useEffect(() => {
-    if (posts) onCount?.(posts.length);
-  }, [posts, onCount]);
+    if (items) onCount?.(items.length);
+  }, [items, onCount]);
 
-  return { posts, setPosts, error, reload };
+  return { items, setItems, error, reload };
 }
 
-// Loading / error / empty states around a list of post rows
-export function PostList({
-  posts,
+// Loading / error / empty states around a list of rows
+export function ListState<T>({
+  items,
   error,
   empty,
   children,
 }: {
-  posts: Post[] | null;
+  items: T[] | null;
   error: string | null;
   empty: ReactNode;
-  children: (post: Post) => ReactNode;
+  children: (item: T) => ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-4">
-      {posts === null && <p className="text-sm text-muted">Loading…</p>}
+      {items === null && <p className="text-sm text-muted">Loading…</p>}
       {error && (
         <p role="alert" className="rounded-lg bg-danger/10 p-4 text-sm text-danger">
           {error}
         </p>
       )}
-      {posts && !error && posts.length === 0 && <div className="card p-6 text-center text-sm text-muted">{empty}</div>}
-      {posts?.map(children)}
+      {items && !error && items.length === 0 && <div className="card p-6 text-center text-sm text-muted">{empty}</div>}
+      {items?.map(children)}
     </section>
   );
 }

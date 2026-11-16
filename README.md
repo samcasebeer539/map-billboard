@@ -33,6 +33,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    npm run dev
    ```
    Open http://localhost:3000.
+   `npm run lint` checks the code with ESLint (Next's recommended rules, including React's hooks rules).
 
 ## Deploy
 

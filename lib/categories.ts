@@ -4,7 +4,7 @@
 import type { Category } from "./supabase";
 import { Accent, ACCENTS, Theme } from "./settings";
 
-export const CATEGORY_COLORS: Record<Category, Accent> = {
+const CATEGORY_COLORS: Record<Category, Accent> = {
   general: "pink",
   event: "purple",
   "lost & found": "red",

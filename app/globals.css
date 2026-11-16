@@ -40,8 +40,8 @@
   color-scheme: dark;
 }
 
-/* Square-corners experiment: every rounded-* size is 0. (rounded-full is left for
-   real circles: dots, swatches, radios.) */
+/* Square corners: every rounded-* size is 0 (rounded-full is left for real circles:
+   dots, swatches, radios). Restore these to bring rounded corners back. */
 @theme {
   --radius-xs: 0;
   --radius-sm: 0;

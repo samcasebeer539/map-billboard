@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef } from "react";
 
 const MAX_BYTES = 20 * 1024 * 1024; // before resizing; big phone photos are fine
 
@@ -17,18 +17,12 @@ type Props = {
 // otherwise the image with Replace and Remove buttons.
 export default function ImagePicker({ id, file, existingUrl, onPick, onRemove, onError }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  // Object URLs for local previews must be revoked when they change
+  // Local preview of a newly picked file; object URLs must be revoked once replaced
+  const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    if (!previewUrl) return;
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];

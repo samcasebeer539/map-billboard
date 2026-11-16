@@ -170,7 +170,8 @@ export default function BillboardMap() {
     setFeed((f) => f && { origin: apply(f.origin), posts: f.posts?.map(apply) ?? null });
     const card = cardsRef.current.get(id);
     if (card) {
-      card.post = { ...card.post, ...patch };
+      // Same object as in postsRef, so the next zoom frame doesn't see it as new data
+      card.post = postsRef.current.find((p) => p.id === id) ?? { ...card.post, ...patch };
       card.render();
     }
   }, []);
@@ -315,31 +316,38 @@ export default function BillboardMap() {
     cardActionsRef.current = { actionsFor, openFeed, closeFeed };
   });
 
-  // Every post in view shows as a card once zoomed in to CARD_ZOOM; otherwise none do
+  // Every post in view shows as a card once zoomed in to CARD_ZOOM; otherwise none do.
+  // Runs on every zoom frame, so it only touches cards that are added, removed or have new
+  // data (zooming changes neither a card's contents nor the cards' top-to-bottom order).
   const syncCards = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
     const open = map.getZoom() >= CARD_ZOOM ? shownPosts(postsRef.current, filterRef.current) : [];
     const openIds = new Set(open.map((p) => p.id));
     const cards = cardsRef.current;
+    let changed = false;
 
     for (const [id, card] of cards) {
       if (openIds.has(id)) continue;
       card.marker.remove();
       setTimeout(() => card.root.unmount()); // unmount outside React's render cycle
       cards.delete(id);
+      changed = true;
     }
 
     for (const p of open) {
       const existing = cards.get(p.id);
-      if (existing) {
+      if (!existing) {
+        cards.set(p.id, createCard(map, p));
+        changed = true;
+      } else if (existing.post !== p) {
         existing.post = p; // fresh data from the server (edits, save counts)
         existing.render();
-      } else {
-        cards.set(p.id, createCard(map, p));
+        changed = true;
       }
     }
-    stackCards(map, cards);
+    // Reloads after every pan/rotate hand over new post objects, so this also restacks then
+    if (changed) stackCards(map, cards);
 
     function createCard(map: MlMap, p: Post): CardEntry {
       const el = document.createElement("div");
@@ -564,20 +572,23 @@ export default function BillboardMap() {
         />
       )}
 
-      <ReportDialog
-        post={reporting}
-        onClose={closeReport}
-        onReported={(p) => {
-          // Hide it for this person straight away (the server does the same from now on)
-          postsRef.current = postsRef.current.filter((x) => x.id !== p.id);
-          showPosts();
-          if (commentsPost?.id === p.id) setCommentsPost(null);
-          if (feed?.origin.id === p.id) closeFeed();
-          else setFeed((f) => f && { ...f, posts: f.posts?.filter((x) => x.id !== p.id) ?? null });
-          setReporting(null);
-          setToast("Thanks, the post was reported");
-        }}
-      />
+      {reporting && (
+        <ReportDialog
+          key={reporting.id}
+          post={reporting}
+          onClose={closeReport}
+          onReported={(p) => {
+            // Hide it for this person straight away (the server does the same from now on)
+            postsRef.current = postsRef.current.filter((x) => x.id !== p.id);
+            showPosts();
+            if (commentsPost?.id === p.id) setCommentsPost(null);
+            if (feed?.origin.id === p.id) closeFeed();
+            else setFeed((f) => f && { ...f, posts: f.posts?.filter((x) => x.id !== p.id) ?? null });
+            setReporting(null);
+            setToast("Thanks, the post was reported");
+          }}
+        />
+      )}
 
       <Lightbox image={lightbox} onClose={closeLightbox} />
       <Toast message={toast} onDone={closeToast} />

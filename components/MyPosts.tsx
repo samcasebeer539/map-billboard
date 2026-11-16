@@ -7,14 +7,14 @@ import Field from "./Field";
 import Switch from "./Switch";
 import ImagePicker from "./ImagePicker";
 import PostSummary, { commentLabel, fmtDate, isExpired, saveLabel } from "./PostSummary";
-import { PostList, usePostList } from "./PostList";
+import { ListState, useList } from "./PostList";
 import { BODY_MAX, CATEGORIES, POST_LIMIT, deletePost, Duration, DURATIONS, fetchMyPosts, imageUrl, Post, TITLE_MAX, updatePost } from "@/lib/supabase";
 import { categoryColor } from "@/lib/categories";
 
 // The signed-in visitor's own posts, with edit and delete.
 // onCount reports how many posts are listed (shown in the Profile tab).
 export default function MyPosts({ onCount }: { onCount?: (n: number) => void }) {
-  const { posts, error, reload } = usePostList(fetchMyPosts, onCount);
+  const { items: posts, error, reload } = useList(fetchMyPosts, onCount);
   const active = posts?.filter((p) => !isExpired(p)).length ?? 0;
 
   return (
@@ -25,8 +25,8 @@ export default function MyPosts({ onCount }: { onCount?: (n: number) => void }) 
           {active >= POST_LIMIT && " · delete one or let one expire to post again"}
         </p>
       )}
-      <PostList
-      posts={posts}
+      <ListState
+      items={posts}
       error={error}
       empty={
         <>
@@ -39,7 +39,7 @@ export default function MyPosts({ onCount }: { onCount?: (n: number) => void }) 
       }
     >
       {(p) => <PostRow key={p.id} post={p} onChanged={reload} />}
-      </PostList>
+      </ListState>
     </div>
   );
 }

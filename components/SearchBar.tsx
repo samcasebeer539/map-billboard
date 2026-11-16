@@ -42,14 +42,20 @@ export default function SearchBar({
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("posts");
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Result[] | null>(null); // null: nothing searched yet
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // The latest finished search, tagged with what it was for. Results, loading and error are
+  // derived from it below, so changing the query never needs a state reset.
+  const [found, setFound] = useState<{ key: string; items: Result[]; error: string | null } | null>(null);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const q = query.trim();
+  const searchable = open && q.length >= MIN_CHARS;
+  const key = `${mode}|${[...filter].sort().join(",")}|${q}`;
+  const current = searchable && found?.key === key ? found : null;
+  const results = current?.items ?? null; // null: still searching (or nothing to search)
+  const error = current?.error ?? null;
+  const loading = searchable && !current;
 
   // Close on a press outside (which still goes through to the map), like the menus.
   // The query stays, so reopening shows the same search.
@@ -68,14 +74,8 @@ export default function SearchBar({
 
   // Search as you type, after a short pause. Older, slower responses are dropped.
   useEffect(() => {
-    if (!open || q.length < MIN_CHARS) {
-      setResults(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+    if (!searchable) return;
     const ctrl = new AbortController();
-    setLoading(true);
     const t = setTimeout(async () => {
       try {
         const center = getCenter();
@@ -87,22 +87,20 @@ export default function SearchBar({
           found = posts.filter((p) => matchesFilter(p.category, filter)).map((post) => ({ kind: "post", post }));
         }
         if (ctrl.signal.aborted) return;
-        setResults(found);
-        setError(null);
+        setFound({ key, items: found, error: null });
         setActive(0);
       } catch (e) {
         if (ctrl.signal.aborted) return;
         console.error(e);
-        setResults([]);
-        setError(mode === "places" ? "Couldn't reach place search. Try again in a moment." : "Search failed. Try again.");
+        const message = mode === "places" ? "Couldn't reach place search. Try again in a moment." : "Search failed. Try again.";
+        setFound({ key, items: [], error: message });
       }
-      setLoading(false);
     }, DEBOUNCE_MS);
     return () => {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [open, q, mode, filter, getCenter, loadedPosts]);
+  }, [searchable, key, q, mode, filter, getCenter, loadedPosts]);
 
   function close() {
     setOpen(false);

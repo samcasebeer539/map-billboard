@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { ListState, useList } from "./PostList";
 import { fmtDate } from "./PostSummary";
 import { deleteComment, fetchMyComments, MyComment } from "@/lib/supabase";
 import { categoryColor } from "@/lib/categories";
@@ -9,40 +10,16 @@ import { categoryColor } from "@/lib/categories";
 // Your comments and replies across all posts, newest first.
 // onCount reports how many are listed (shown in the Profile tab).
 export default function MyComments({ onCount }: { onCount?: (n: number) => void }) {
-  const [comments, setComments] = useState<MyComment[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const res = await fetchMyComments();
-    setComments(res.comments);
-    setError(res.error);
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    if (comments) onCount?.(comments.length);
-  }, [comments, onCount]);
+  const { items: comments, setItems: setComments, error } = useList(fetchMyComments, onCount);
 
   return (
-    <section className="flex flex-col gap-4">
-      {comments === null && <p className="text-sm text-muted">Loading…</p>}
-      {error && (
-        <p role="alert" className="rounded-lg bg-danger/10 p-4 text-sm text-danger">
-          {error}
-        </p>
-      )}
-      {comments && !error && comments.length === 0 && (
-        <div className="card p-6 text-center text-sm text-muted">
-          No comments yet. Your comments and replies on posts will show up here.
-        </div>
-      )}
-      {comments?.map((c) => (
-        <CommentRow key={c.id} comment={c} onDeleted={() => setComments((cs) => cs?.filter((x) => x.id !== c.id) ?? null)} />
-      ))}
-    </section>
+    <ListState
+      items={comments}
+      error={error}
+      empty="No comments yet. Your comments and replies on posts will show up here."
+    >
+      {(c) => <CommentRow key={c.id} comment={c} onDeleted={() => setComments((cs) => cs?.filter((x) => x.id !== c.id) ?? null)} />}
+    </ListState>
   );
 }
 

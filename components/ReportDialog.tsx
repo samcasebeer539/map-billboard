@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { Post, REPORT_REASONS, ReportReason, reportPost } from "@/lib/supabase";
 
 // Modal for reporting a post. The post disappears for the reporter right away,
-// and for everyone once 3 people have reported it.
+// and for everyone once 3 people have reported it. Render it only while open, keyed by
+// the post, so the chosen reason and any error start fresh each time.
 export default function ReportDialog({
   post,
   onClose,
   onReported,
 }: {
-  post: Post | null;
+  post: Post;
   onClose: () => void;
   onReported: (post: Post) => void;
 }) {
@@ -19,21 +20,16 @@ export default function ReportDialog({
   const [error, setError] = useState<string | null>(null);
   const firstRef = useRef<HTMLButtonElement>(null);
 
-  // Reset when opened for a new post; Escape closes
+  // Focus the first reason; Escape closes
   useEffect(() => {
-    if (!post) return;
-    setReason(null);
-    setError(null);
     firstRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [post, onClose]);
-
-  if (!post) return null;
+  }, [onClose]);
 
   async function submit() {
-    if (!post || !reason) return;
+    if (!reason) return;
     setBusy(true);
     const err = await reportPost(post.id, reason);
     setBusy(false);
