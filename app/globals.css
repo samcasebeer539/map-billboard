@@ -169,6 +169,21 @@ body {
 .maplibregl-ctrl-group button:not(:disabled):hover .maplibregl-ctrl-icon {
   opacity: 1;
 }
+/* Map / Satellite toggle (lib/basemapControl.ts): an SVG icon rather than an image, so it uses
+   the text colors: muted, full on hover, accent while satellite is on */
+.maplibregl-ctrl-group button.basemap-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+.maplibregl-ctrl-group button.basemap-toggle:hover {
+  color: var(--fg);
+}
+.maplibregl-ctrl-group button.basemap-toggle[aria-pressed="true"] {
+  color: var(--accent);
+}
 .dark .maplibregl-ctrl button .maplibregl-ctrl-icon {
   filter: invert(1);
 }

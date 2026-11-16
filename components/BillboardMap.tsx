@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { GeoJSONSource, GeolocateControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
 import { fetchPostsInView, Post, postLink, setSaved } from "@/lib/supabase";
-import { appliedTheme, cssToken, Theme } from "@/lib/settings";
+import { appliedTheme, cssToken, STORAGE_KEYS } from "@/lib/settings";
+import { BasemapControl } from "@/lib/basemapControl";
 import {
   addPostLayers,
   applyPinColors,
@@ -16,7 +17,9 @@ import {
   SOURCE,
   START,
   START_ZOOM,
-  STYLE_URLS,
+  Basemap,
+  SATELLITE_URL,
+  styleUrl,
   toGeoJSON,
 } from "@/lib/mapLayers";
 import { useSettings } from "./SettingsProvider";
@@ -132,7 +135,9 @@ function stackCards(map: MlMap, cards: Map<string, CardEntry>) {
 export default function BillboardMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
-  const styleThemeRef = useRef<Theme | null>(null);
+  const styleUrlRef = useRef<string | null>(null); // the basemap style currently loaded
+  const basemapRef = useRef<Basemap>("map"); // street map or satellite (remembered in this browser)
+  const basemapControlRef = useRef<BasemapControl | null>(null);
   const postsRef = useRef<Post[]>([]); // every post loaded, whatever the category filter
   const filterRef = useRef<ReadonlySet<string>>(new Set()); // categories toggled on; none = show all
   const loadIdRef = useRef(0); // ignores responses from older, slower requests
@@ -417,10 +422,13 @@ export default function BillboardMap() {
     const lng = parseFloat(params.get("lng") ?? "");
     const focus = Number.isFinite(lat) && Number.isFinite(lng);
 
-    styleThemeRef.current = appliedTheme();
+    try {
+      if (SATELLITE_URL && localStorage.getItem(STORAGE_KEYS.basemap) === "satellite") basemapRef.current = "satellite";
+    } catch {}
+    styleUrlRef.current = styleUrl(appliedTheme(), basemapRef.current);
     const map = new MlMap({
       container: containerRef.current,
-      style: STYLE_URLS[styleThemeRef.current],
+      style: styleUrlRef.current,
       center: focus ? [lng, lat] : START,
       zoom: focus ? FOCUS_ZOOM : START_ZOOM,
       clickTolerance: 6, // px of movement still treated as a click/tap, not a drag (default 3)
@@ -428,12 +436,27 @@ export default function BillboardMap() {
     mapRef.current = map;
     map.addControl(new NavigationControl(), "top-right");
     map.addControl(new GeolocateControl({ trackUserLocation: false }), "top-right");
+    if (SATELLITE_URL) {
+      // Switch between the street map and satellite; the choice is remembered
+      const control = new BasemapControl(() => {
+        const next: Basemap = basemapRef.current === "satellite" ? "map" : "satellite";
+        basemapRef.current = next;
+        control.setSatellite(next === "satellite");
+        try {
+          localStorage.setItem(STORAGE_KEYS.basemap, next);
+        } catch {}
+        styleUrlRef.current = styleUrl(appliedTheme(), next);
+        map.setStyle(styleUrlRef.current, { diff: false });
+      }, basemapRef.current === "satellite");
+      basemapControlRef.current = control;
+      map.addControl(control, "top-right");
+    }
 
-    // Switching light/dark replaces the whole style, which wipes our layers,
+    // Switching light/dark or map/satellite replaces the whole style, which wipes our layers,
     // so they're (re)added every time a style finishes loading.
     map.on("style.load", () => {
       if (map.getSource(SOURCE)) return;
-      addPostLayers(map, shownPosts(postsRef.current, filterRef.current));
+      addPostLayers(map, shownPosts(postsRef.current, filterRef.current), basemapRef.current === "satellite");
       syncCards();
     });
 
@@ -488,17 +511,23 @@ export default function BillboardMap() {
     };
   }, [loadPosts, syncCards, setHighlight]);
 
-  // Swap the basemap when the theme changes
+  // Swap the street map's style when the theme changes. Satellite looks the same in both
+  // themes, so then only the pins are recolored (category colors differ per theme).
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || styleThemeRef.current === theme) return;
-    styleThemeRef.current = theme;
-    map.setStyle(STYLE_URLS[theme], { diff: false });
+    if (!map || !ready) return;
+    const url = styleUrl(theme, basemapRef.current);
+    if (url === styleUrlRef.current) {
+      applyPinColors(map, basemapRef.current === "satellite");
+      return;
+    }
+    styleUrlRef.current = url;
+    map.setStyle(url, { diff: false });
   }, [theme, ready]);
 
   // Recolor pins when the accent changes
   useEffect(() => {
-    if (mapRef.current) applyPinColors(mapRef.current);
+    if (mapRef.current) applyPinColors(mapRef.current, basemapRef.current === "satellite");
   }, [accent]);
 
   // Show the draft pin while the post form is open

@@ -20,7 +20,7 @@ export type Accent = keyof typeof ACCENTS;
 
 export const DEFAULT_ACCENT: Accent = "orange";
 
-export const STORAGE_KEYS = { theme: "mb-theme", accent: "mb-accent" } as const;
+export const STORAGE_KEYS = { theme: "mb-theme", accent: "mb-accent", basemap: "mb-basemap" } as const;
 
 // Runs in <head> before the page paints, so there's no flash of the wrong theme.
 // Keep it in sync with applyTheme/applyAccent below.

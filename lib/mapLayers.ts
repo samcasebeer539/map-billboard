@@ -6,18 +6,21 @@ import type { Post } from "./supabase";
 import { appliedTheme, cssToken, Theme } from "./settings";
 import { categoryColorExpression } from "./categories";
 
-const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+// Street map: OpenFreeMap (free, no key), one style per theme
+export const STYLE_URLS: Record<Theme, string> = {
+  light: "https://tiles.openfreemap.org/styles/liberty",
+  dark: "https://tiles.openfreemap.org/styles/fiord",
+};
 
-export const STYLE_URLS: Record<Theme, string> = MAPTILER_KEY
-  ? {
-      light: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
-      dark: `https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${MAPTILER_KEY}`,
-    }
-  : {
-      // OpenFreeMap: free, no key
-      light: "https://tiles.openfreemap.org/styles/liberty",
-      dark: "https://tiles.openfreemap.org/styles/fiord",
-    };
+// Satellite: MapTiler's "hybrid" style (imagery with street and place labels). Needs a free
+// MapTiler key in NEXT_PUBLIC_MAPTILER_KEY; without one the Map/Satellite toggle is hidden.
+const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+export const SATELLITE_URL = MAPTILER_KEY ? `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}` : null;
+
+export type Basemap = "map" | "satellite";
+
+export const styleUrl = (theme: Theme, basemap: Basemap) =>
+  basemap === "satellite" && SATELLITE_URL ? SATELLITE_URL : STYLE_URLS[theme];
 
 // Starting view: Sacramento. Change to wherever you want the demo to open.
 export const START: [number, number] = [-121.4944, 38.5816];
@@ -55,13 +58,19 @@ export function toGeoJSON(posts: Post[]): GeoJSON.FeatureCollection {
 
 // Dots use their category's color; groups (which can mix categories) use the user's accent.
 // Colors come from the same tokens as the rest of the UI, for the current theme.
-export function applyPinColors(map: MlMap) {
+// On satellite imagery (busy and dark) dots and groups get a thin white outline to stand out.
+export function applyPinColors(map: MlMap, satellite = false) {
   const accent = cssToken("--accent");
+  const outline = satellite ? 2 : 0;
   if (map.getLayer(CLUSTER_LAYER)) {
     map.setPaintProperty(CLUSTER_LAYER, "circle-color", accent);
+    map.setPaintProperty(CLUSTER_LAYER, "circle-stroke-width", outline);
+    map.setPaintProperty(CLUSTER_LAYER, "circle-stroke-color", "#ffffff");
   }
   if (map.getLayer(DOT_LAYER)) {
     map.setPaintProperty(DOT_LAYER, "circle-color", categoryColorExpression(appliedTheme(), accent) as ExpressionSpecification);
+    map.setPaintProperty(DOT_LAYER, "circle-stroke-width", outline);
+    map.setPaintProperty(DOT_LAYER, "circle-stroke-color", "#ffffff");
   }
   if (map.getLayer(CLUSTER_COUNT_LAYER)) {
     map.setPaintProperty(CLUSTER_COUNT_LAYER, "text-color", cssToken("--on-accent"));
@@ -70,7 +79,7 @@ export function applyPinColors(map: MlMap) {
 
 // Adds the posts source plus cluster bubbles, cluster counts and single-post dots.
 // Must be re-run after every style change, since setStyle() wipes custom layers.
-export function addPostLayers(map: MlMap, posts: Post[]) {
+export function addPostLayers(map: MlMap, posts: Post[], satellite = false) {
   map.addSource(SOURCE, {
     type: "geojson",
     data: toGeoJSON(posts),
@@ -108,5 +117,5 @@ export function addPostLayers(map: MlMap, posts: Post[]) {
     filter: ["!", ["has", "point_count"]],
     paint: { "circle-radius": 8 },
   });
-  applyPinColors(map);
+  applyPinColors(map, satellite);
 }

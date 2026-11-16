@@ -2,7 +2,7 @@
 
 A community billboard on a map. Click anywhere to pin a post; everyone sees posts in the area they're looking at.
 
-**Stack (all free tiers):** Next.js + Tailwind · MapLibre GL JS · OpenFreeMap tiles (or MapTiler) · Supabase (Postgres + PostGIS) · Vercel
+**Stack (all free tiers):** Next.js + Tailwind · MapLibre GL JS · OpenFreeMap tiles (MapTiler for optional satellite) · Supabase (Postgres + PostGIS) · Vercel
 
 ## Setup
 
@@ -26,7 +26,7 @@ A community billboard on a map. Click anywhere to pin a post; everyone sees post
    ```bash
    cp .env.example .env.local
    ```
-   Fill in the Supabase values. The MapTiler key is optional; without it the map uses OpenFreeMap, which needs no key.
+   Fill in the Supabase values. The MapTiler key is optional: it turns on the Map / Satellite toggle (MapTiler's free plan is for non-commercial use). The street map always uses OpenFreeMap, which needs no key.
 
 4. **Run it**
    ```bash
