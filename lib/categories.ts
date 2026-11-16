@@ -4,14 +4,16 @@
 import type { Category } from "./supabase";
 import { Accent, ACCENTS, Theme } from "./settings";
 
+// In the same order as the menus list the categories and Settings lists the colors,
+// so the dropdowns run through the palette in order
 const CATEGORY_COLORS: Record<Category, Accent> = {
-  general: "pink",
-  event: "purple",
-  "lost & found": "red",
-  "for sale": "blue",
-  free: "green",
-  "help wanted": "orange",
-  service: "teal",
+  general: "orange",
+  event: "red",
+  "lost & found": "pink",
+  "for sale": "purple",
+  free: "blue",
+  "help wanted": "teal",
+  service: "green",
 };
 
 function paletteName(category: string): Accent | null {
